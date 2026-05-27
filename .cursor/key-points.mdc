@@ -1,0 +1,7 @@
+# Parkiroid key points
+
+## SMS (device-only)
+
+- All outbound SMS goes through `SmsSender` (`SmsSender.send` / `sendToAll`). Requires runtime `SEND_SMS`. No server API.
+- Accelerometer alarms optionally SMS comma-separated numbers from settings (`alertPhoneNumbers`).
+- Use `SmsSender` for any new feature that needs to send SMS on the device.

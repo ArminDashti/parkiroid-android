@@ -29,6 +29,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.Executors
@@ -109,7 +111,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
     private fun scheduleLoop() {
         io.execute {
             while (running) {
-                val settings = kotlinx.coroutines.runBlocking { settingsStore.settingsFlow.first() }
+                val settings = runBlocking { settingsStore.settingsFlow.first() }
                 takePhotoAndSend(settings.serverBaseUrl)
                 sendBatteryInfo(settings.serverBaseUrl)
                 Thread.sleep(settings.periodSec * 1000L)
@@ -156,20 +158,27 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         if (now - lastAlarmAt < 5000) return
 
         if (mag > 30) {
-            postAlarm("/samroid/api/v1/alarm/violent-jolt")
+            postAlarm("/samroid/api/v1/alarm/violent-jolt", "Parkiroid: violent jolt detected")
             lastAlarmAt = now
         } else if (mag > 18) {
-            postAlarm("/samroid/api/v1/alarm/jarring-noise")
+            postAlarm("/samroid/api/v1/alarm/jarring-noise", "Parkiroid: jarring noise detected")
             lastAlarmAt = now
         }
     }
 
-    private fun postAlarm(path: String) {
-        val baseUrl = kotlinx.coroutines.runBlocking { settingsStore.settingsFlow.first().serverBaseUrl }
-        if (baseUrl.isBlank()) return
-        val req = Request.Builder().url("$baseUrl$path")
+    private fun postAlarm(path: String, smsMessage: String) {
+        val settings = runBlocking { settingsStore.settingsFlow.first() }
+        if (settings.serverBaseUrl.isBlank()) return
+        val req = Request.Builder().url("${settings.serverBaseUrl}$path")
             .post("{}".toRequestBody("application/json".toMediaType())).build()
         client.newCall(req).execute().close()
+        sendAlarmSms(settings, smsMessage)
+    }
+
+    private fun sendAlarmSms(settings: AppSettings, message: String) {
+        val numbers = settingsStore.parsePhoneNumbers(settings.alertPhoneNumbers)
+        if (numbers.isEmpty()) return
+        SmsSender.sendToAll(this, numbers, message)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit

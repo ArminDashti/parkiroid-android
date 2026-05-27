@@ -22,18 +22,22 @@ class MainActivity : AppCompatActivity() {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+
+    private val requiredPermissions = arrayOf(
+        Manifest.permission.CAMERA,
+        Manifest.permission.SEND_SMS
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
+        requestMissingPermissions()
 
         val serverInput = findViewById<TextInputEditText>(R.id.serverInput)
         val periodInput = findViewById<TextInputEditText>(R.id.periodInput)
+        val alertPhonesInput = findViewById<TextInputEditText>(R.id.alertPhonesInput)
         val saveBtn = findViewById<Button>(R.id.saveBtn)
         val startBtn = findViewById<Button>(R.id.startBtn)
         val stopBtn = findViewById<Button>(R.id.stopBtn)
@@ -43,13 +47,15 @@ class MainActivity : AppCompatActivity() {
             val st = settingsStore.settingsFlow.first()
             serverInput.setText(st.serverBaseUrl)
             periodInput.setText(st.periodSec.toString())
+            alertPhonesInput.setText(st.alertPhoneNumbers)
         }
 
         saveBtn.setOnClickListener {
             scope.launch {
                 settingsStore.save(
                     serverInput.text?.toString().orEmpty(),
-                    periodInput.text?.toString()?.toIntOrNull() ?: 15
+                    periodInput.text?.toString()?.toIntOrNull() ?: 15,
+                    alertPhonesInput.text?.toString().orEmpty()
                 )
             }
         }
@@ -72,6 +78,15 @@ class MainActivity : AppCompatActivity() {
             }
             startService(intent)
             status.setText(R.string.status_idle)
+        }
+    }
+
+    private fun requestMissingPermissions() {
+        val missing = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            permissionLauncher.launch(missing.toTypedArray())
         }
     }
 }

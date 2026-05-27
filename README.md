@@ -11,6 +11,7 @@ Minimal Kotlin Android app focused on low-power background monitoring for parked
 - Vibration/jolt detection with accelerometer alarms:
   - `<SERVER-IP>/samroid/api/v1/alarm/jarring-noise`
   - `<SERVER-IP>/samroid/api/v1/alarm/violent-jolt`
+- SMS alerts on device (no server API): optional alarm SMS to comma-separated numbers in settings
 - Works while screen is off via Foreground Service + partial wakelock.
 - Minimal settings UI:
   - Server URL (IP + port)
@@ -27,6 +28,7 @@ Open in Android Studio (Giraffe+), sync Gradle, and run on device.
 
 ## Permissions
 - CAMERA
+- SEND_SMS
 - FOREGROUND_SERVICE
 - WAKE_LOCK
 - INTERNET
