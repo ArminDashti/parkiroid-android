@@ -4,4 +4,5 @@
 
 - All outbound SMS goes through `SmsSender` (`SmsSender.send` / `sendToAll`). Requires runtime `SEND_SMS`. No server API.
 - Accelerometer alarms optionally SMS comma-separated numbers from settings (`alertPhoneNumbers`).
+- Shake thresholds: violent jolt above `maxShakeMagnitude` (default 30 m/s²); jarring noise at 60% of that. Configured in `SettingsActivity`.
 - Use `SmsSender` for any new feature that needs to send SMS on the device.

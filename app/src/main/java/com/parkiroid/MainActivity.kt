@@ -10,17 +10,8 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.google.android.material.textfield.TextInputEditText
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    private val settingsStore by lazy { SettingsStore(this) }
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
-
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
@@ -35,29 +26,13 @@ class MainActivity : AppCompatActivity() {
 
         requestMissingPermissions()
 
-        val serverInput = findViewById<TextInputEditText>(R.id.serverInput)
-        val periodInput = findViewById<TextInputEditText>(R.id.periodInput)
-        val alertPhonesInput = findViewById<TextInputEditText>(R.id.alertPhonesInput)
-        val saveBtn = findViewById<Button>(R.id.saveBtn)
+        val settingsBtn = findViewById<Button>(R.id.settingsBtn)
         val startBtn = findViewById<Button>(R.id.startBtn)
         val stopBtn = findViewById<Button>(R.id.stopBtn)
         val status = findViewById<TextView>(R.id.statusTxt)
 
-        scope.launch {
-            val st = settingsStore.settingsFlow.first()
-            serverInput.setText(st.serverBaseUrl)
-            periodInput.setText(st.periodSec.toString())
-            alertPhonesInput.setText(st.alertPhoneNumbers)
-        }
-
-        saveBtn.setOnClickListener {
-            scope.launch {
-                settingsStore.save(
-                    serverInput.text?.toString().orEmpty(),
-                    periodInput.text?.toString()?.toIntOrNull() ?: 15,
-                    alertPhonesInput.text?.toString().orEmpty()
-                )
-            }
+        settingsBtn.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         startBtn.setOnClickListener {

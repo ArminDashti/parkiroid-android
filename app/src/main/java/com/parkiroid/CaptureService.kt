@@ -57,6 +57,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accel: Sensor? = null
     private var lastAlarmAt = 0L
+    @Volatile private var cachedSettings: AppSettings? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -81,6 +82,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         acquireWakeLock()
         bindCamera()
+        cachedSettings = runBlocking { settingsStore.settingsFlow.first() }
         accel?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
     }
 
@@ -112,6 +114,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         io.execute {
             while (running) {
                 val settings = runBlocking { settingsStore.settingsFlow.first() }
+                cachedSettings = settings
                 takePhotoAndSend(settings.serverBaseUrl)
                 sendBatteryInfo(settings.serverBaseUrl)
                 Thread.sleep(settings.periodSec * 1000L)
@@ -128,7 +131,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
                 val body = MultipartBody.Builder().setType(MultipartBody.FORM)
                     .addFormDataPart("file", file.name, file.asRequestBody("image/jpeg".toMediaType()))
                     .build()
-                val req = Request.Builder().url("$baseUrl/samroid/api/v1/img").post(body).build()
+                val req = Request.Builder().url("$baseUrl/parkiroid/api/v1/img").post(body).build()
                 client.newCall(req).execute().close()
                 file.delete()
             }
@@ -147,7 +150,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
             .put("batteryTempC", temp)
             .toString()
             .toRequestBody("application/json".toMediaType())
-        val req = Request.Builder().url("$baseUrl/samroid/api/v1/battery/info").post(payload).build()
+        val req = Request.Builder().url("$baseUrl/parkiroid/api/v1/battery/info").post(payload).build()
         client.newCall(req).execute().close()
     }
 
@@ -157,11 +160,15 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         val now = System.currentTimeMillis()
         if (now - lastAlarmAt < 5000) return
 
-        if (mag > 30) {
-            postAlarm("/samroid/api/v1/alarm/violent-jolt", "Parkiroid: violent jolt detected")
+        val settings = cachedSettings ?: runBlocking { settingsStore.settingsFlow.first() }
+        val violentThreshold = settings.maxShakeMagnitude.toDouble()
+        val jarringThreshold = settings.jarringShakeMagnitude.toDouble()
+
+        if (mag > violentThreshold) {
+            postAlarm("/parkiroid/api/v1/alarm/violent-jolt", "Parkiroid: violent jolt detected")
             lastAlarmAt = now
-        } else if (mag > 18) {
-            postAlarm("/samroid/api/v1/alarm/jarring-noise", "Parkiroid: jarring noise detected")
+        } else if (mag > jarringThreshold) {
+            postAlarm("/parkiroid/api/v1/alarm/jarring-noise", "Parkiroid: jarring noise detected")
             lastAlarmAt = now
         }
     }
