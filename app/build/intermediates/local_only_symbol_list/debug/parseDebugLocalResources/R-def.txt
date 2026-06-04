@@ -1,0 +1,26 @@
+R_DEF: Internal format may change without notice
+local
+id maxShakeInput
+id saveBtn
+id serverInput
+id settingsBtn
+id settingsToolbar
+id smsNumberInput
+id startBtn
+id statusTxt
+id stopBtn
+layout activity_main
+layout activity_settings
+string app_name
+string invalid_shake_magnitude
+string max_shake_magnitude
+string save
+string server_base_url
+string settings_saved
+string settings_title
+string sms_number
+string start
+string status_idle
+string status_running
+string stop
+style Theme.Parkiroid

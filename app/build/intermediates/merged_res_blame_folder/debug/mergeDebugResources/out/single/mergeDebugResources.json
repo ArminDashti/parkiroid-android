@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.parkiroid.app-debug-39:/layout_activity_main.xml.flat",
+        "source": "com.parkiroid.app-main-41:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.parkiroid.app-debug-39:/layout_activity_settings.xml.flat",
+        "source": "com.parkiroid.app-main-41:/layout/activity_settings.xml"
+    }
+]

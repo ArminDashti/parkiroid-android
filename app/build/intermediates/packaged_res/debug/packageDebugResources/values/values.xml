@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Parkiroid</string>
+    <string name="invalid_shake_magnitude">Enter a valid shake magnitude (5–80)</string>
+    <string name="max_shake_magnitude">Max shake magnitude (m/s², default 30)</string>
+    <string name="save">Save</string>
+    <string name="server_base_url">Server address (e.g. http://192.168.1.10:8080)</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="settings_title">Settings</string>
+    <string name="sms_number">SMS number (comma-separated, optional)</string>
+    <string name="start">Start Monitoring</string>
+    <string name="status_idle">Status: Idle</string>
+    <string name="status_running">Status: Running in background</string>
+    <string name="stop">Stop Monitoring</string>
+    <style name="Theme.Parkiroid" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@android:color/holo_blue_dark</item>
+    </style>
+</resources>
