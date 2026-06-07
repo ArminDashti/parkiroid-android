@@ -1,10 +1,26 @@
 [
     {
+        "merged": "com.parkiroid.app-debug-39:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.parkiroid.app-main-41:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.parkiroid.app-debug-39:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.parkiroid.app-main-41:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
         "merged": "com.parkiroid.app-debug-39:/layout_activity_main.xml.flat",
         "source": "com.parkiroid.app-main-41:/layout/activity_main.xml"
     },
     {
+        "merged": "com.parkiroid.app-debug-39:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.parkiroid.app-main-41:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
         "merged": "com.parkiroid.app-debug-39:/layout_activity_settings.xml.flat",
         "source": "com.parkiroid.app-main-41:/layout/activity_settings.xml"
+    },
+    {
+        "merged": "com.parkiroid.app-debug-39:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.parkiroid.app-main-41:/drawable/ic_launcher_foreground.xml"
     }
 ]

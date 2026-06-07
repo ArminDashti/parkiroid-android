@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="ic_launcher_background">#1565C0</color>
     <string name="app_name">Parkiroid</string>
     <string name="invalid_shake_magnitude">Enter a valid shake magnitude (5–80)</string>
     <string name="max_shake_magnitude">Max shake magnitude (m/s², default 30)</string>

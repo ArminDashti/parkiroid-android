@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Car body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,58 L32,48 L76,48 L80,58 L88,58 L88,68 L84,68 L84,72 L76,72 L76,68 L32,68 L32,72 L24,72 L24,68 L20,68 L20,58 Z" />
+
+    <!-- Windshield -->
+    <path
+        android:fillColor="#BBDEFB"
+        android:pathData="M36,50 L48,50 L46,56 L34,56 Z" />
+    <path
+        android:fillColor="#BBDEFB"
+        android:pathData="M60,50 L72,50 L74,56 L62,56 Z" />
+
+    <!-- Wheels -->
+    <path
+        android:fillColor="#37474F"
+        android:pathData="M34,68 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path
+        android:fillColor="#37474F"
+        android:pathData="M74,68 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+
+    <!-- Camera / monitor eye above the car -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M54,30 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+
+    <!-- Motion pulse arcs -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,40 Q42,40 42,52"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,40 Q66,40 66,52"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+</vector>

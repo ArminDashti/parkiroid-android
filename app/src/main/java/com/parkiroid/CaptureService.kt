@@ -20,6 +20,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -107,7 +108,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
             provider.unbindAll()
             provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, imageCapture)
             scheduleLoop()
-        }, ContextCompatExecutor.main)
+        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun scheduleLoop() {
@@ -215,9 +216,4 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-}
-
-object ContextCompatExecutor : java.util.concurrent.Executor {
-    private val main = android.os.Handler(android.os.Looper.getMainLooper())
-    override fun execute(command: Runnable) = main.post(command)
 }
