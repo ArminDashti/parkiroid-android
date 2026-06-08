@@ -5,8 +5,8 @@
 5    android:versionName="1.0" >
 6
 7    <uses-sdk
-8        android:minSdkVersion="30"
-9        android:targetSdkVersion="35" />
+8        android:minSdkVersion="29"
+9        android:targetSdkVersion="33" />
 10
 11    <uses-feature
 11-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:3:5-84
@@ -20,172 +20,176 @@
 15-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:4:19-67
 16        android:required="false" />
 16-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:4:68-92
-17
-18    <uses-permission android:name="android.permission.CAMERA" />
-18-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:6:5-65
-18-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:6:22-62
-19    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-19-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:7:5-77
-19-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:7:22-74
-20    <uses-permission android:name="android.permission.WAKE_LOCK" />
-20-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:8:5-68
-20-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:8:22-65
-21    <uses-permission android:name="android.permission.INTERNET" />
-21-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:9:5-67
-21-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:9:22-64
-22    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-22-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:10:5-79
-22-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:10:22-76
-23    <uses-permission android:name="android.permission.SEND_SMS" />
-23-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:11:5-67
-23-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:11:22-64
-24
-25    <permission
-25-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
-26        android:name="com.parkiroid.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-26-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
-27        android:protectionLevel="signature" />
-27-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
-28
-29    <uses-permission android:name="com.parkiroid.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-29-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
-29-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
-30
-31    <application
-31-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:13:5-40:19
-32        android:allowBackup="true"
-32-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:14:9-35
-33        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-33-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
-34        android:debuggable="true"
-35        android:extractNativeLibs="false"
-36        android:icon="@mipmap/ic_launcher"
-36-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:15:9-43
-37        android:label="@string/app_name"
-37-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:16:9-41
-38        android:roundIcon="@mipmap/ic_launcher_round"
-38-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:17:9-54
-39        android:supportsRtl="true"
-39-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:18:9-35
-40        android:theme="@style/Theme.Parkiroid" >
-40-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:19:9-47
-41        <activity
-41-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:21:9-28:20
-42            android:name="com.parkiroid.MainActivity"
-42-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:22:13-41
-43            android:exported="true" >
-43-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:23:13-36
-44            <intent-filter>
-44-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:24:13-27:29
-45                <action android:name="android.intent.action.MAIN" />
-45-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:25:17-69
-45-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:25:25-66
-46
-47                <category android:name="android.intent.category.LAUNCHER" />
-47-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:26:17-77
-47-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:26:27-74
-48            </intent-filter>
-49        </activity>
-50        <activity
-50-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:30:9-33:58
-51            android:name="com.parkiroid.SettingsActivity"
-51-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:31:13-45
-52            android:exported="false"
-52-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:32:13-37
-53            android:parentActivityName="com.parkiroid.MainActivity" />
-53-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:33:13-55
-54
-55        <service
-55-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:35:9-39:63
-56            android:name="com.parkiroid.CaptureService"
-56-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:36:13-43
-57            android:enabled="true"
-57-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:37:13-35
-58            android:exported="false"
-58-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:38:13-37
-59            android:foregroundServiceType="camera|dataSync" />
-59-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:39:13-60
-60        <service
-60-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:24:9-33:19
-61            android:name="androidx.camera.core.impl.MetadataHolderService"
-61-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:25:13-75
-62            android:enabled="false"
-62-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:26:13-36
-63            android:exported="false" >
-63-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:27:13-37
-64            <meta-data
-64-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:30:13-32:89
-65                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
-65-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:31:17-103
-66                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
-66-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:32:17-86
-67        </service>
-68
-69        <provider
-69-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-70            android:name="androidx.startup.InitializationProvider"
-70-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
-71            android:authorities="com.parkiroid.androidx-startup"
-71-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
-72            android:exported="false" >
-72-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
-73            <meta-data
-73-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-74                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-74-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
-75                android:value="androidx.startup" />
-75-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
-76            <meta-data
-76-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\507280e391003b93fb5e3bacec95305e\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:29:13-31:52
-77                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-77-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\507280e391003b93fb5e3bacec95305e\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:30:17-78
-78                android:value="androidx.startup" />
-78-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\507280e391003b93fb5e3bacec95305e\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:31:17-49
-79            <meta-data
-79-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
-80                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-80-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
-81                android:value="androidx.startup" />
-81-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
-82        </provider>
-83
-84        <receiver
-84-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
-85            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-85-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
-86            android:directBootAware="false"
-86-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
-87            android:enabled="true"
-87-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
-88            android:exported="true"
-88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
-89            android:permission="android.permission.DUMP" >
-89-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
-90            <intent-filter>
-90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
-91                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
-91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
-92            </intent-filter>
-93            <intent-filter>
-93-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
-94                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-94-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
-94-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
-95            </intent-filter>
-96            <intent-filter>
-96-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
-97                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-97-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
-97-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
-98            </intent-filter>
-99            <intent-filter>
-99-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
-100                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
-100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
-101            </intent-filter>
-102        </receiver>
-103    </application>
-104
-105</manifest>
+17    <uses-feature
+17-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:5:5-88
+18        android:name="android.hardware.telephony"
+18-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:5:19-60
+19        android:required="false" />
+19-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:5:61-85
+20
+21    <uses-permission android:name="android.permission.CAMERA" />
+21-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:7:5-65
+21-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:7:22-62
+22    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+22-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:8:5-77
+22-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:8:22-74
+23    <uses-permission android:name="android.permission.WAKE_LOCK" />
+23-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:9:5-68
+23-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:9:22-65
+24    <uses-permission android:name="android.permission.INTERNET" />
+24-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:10:5-67
+24-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:10:22-64
+25    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+25-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:11:5-79
+25-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:11:22-76
+26    <uses-permission android:name="android.permission.SEND_SMS" />
+26-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:12:5-67
+26-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:12:22-64
+27
+28    <permission
+28-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+29        android:name="com.parkiroid.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+29-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+30        android:protectionLevel="signature" />
+30-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+31
+32    <uses-permission android:name="com.parkiroid.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+32-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+32-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+33
+34    <application
+34-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:14:5-40:19
+35        android:allowBackup="true"
+35-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:15:9-35
+36        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+36-->[androidx.core:core:1.13.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\cb83fab9b792cb1ab6dac32ed949056c\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+37        android:debuggable="true"
+38        android:extractNativeLibs="false"
+39        android:icon="@mipmap/ic_launcher"
+39-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:16:9-43
+40        android:label="@string/app_name"
+40-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:17:9-41
+41        android:roundIcon="@mipmap/ic_launcher_round"
+41-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:18:9-54
+42        android:supportsRtl="true"
+42-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:19:9-35
+43        android:theme="@style/Theme.Parkiroid" >
+43-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:20:9-47
+44        <activity
+44-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:22:9-29:20
+45            android:name="com.parkiroid.MainActivity"
+45-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:23:13-41
+46            android:exported="true" >
+46-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:24:13-36
+47            <intent-filter>
+47-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:25:13-28:29
+48                <action android:name="android.intent.action.MAIN" />
+48-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:26:17-69
+48-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:26:25-66
+49
+50                <category android:name="android.intent.category.LAUNCHER" />
+50-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:27:17-77
+50-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:27:27-74
+51            </intent-filter>
+52        </activity>
+53        <activity
+53-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:31:9-34:58
+54            android:name="com.parkiroid.SettingsActivity"
+54-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:32:13-45
+55            android:exported="false"
+55-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:33:13-37
+56            android:parentActivityName="com.parkiroid.MainActivity" />
+56-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:34:13-55
+57
+58        <service
+58-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:36:9-39:40
+59            android:name="com.parkiroid.CaptureService"
+59-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:37:13-43
+60            android:enabled="true"
+60-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:38:13-35
+61            android:exported="false" />
+61-->C:\Users\armin\Documents\GitHub\parkiroid\app\src\main\AndroidManifest.xml:39:13-37
+62        <service
+62-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:24:9-33:19
+63            android:name="androidx.camera.core.impl.MetadataHolderService"
+63-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:25:13-75
+64            android:enabled="false"
+64-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:26:13-36
+65            android:exported="false" >
+65-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:27:13-37
+66            <meta-data
+66-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:30:13-32:89
+67                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
+67-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:31:17-103
+68                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
+68-->[androidx.camera:camera-camera2:1.3.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\39ab4cdfb2b43b02cb37859e242d3858\transformed\jetified-camera-camera2-1.3.4\AndroidManifest.xml:32:17-86
+69        </service>
+70
+71        <provider
+71-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+72            android:name="androidx.startup.InitializationProvider"
+72-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
+73            android:authorities="com.parkiroid.androidx-startup"
+73-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
+74            android:exported="false" >
+74-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
+75            <meta-data
+75-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+76                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+76-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
+77                android:value="androidx.startup" />
+77-->[androidx.emoji2:emoji2:1.3.0] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\71e362d890f54d45e9c92893499ed48a\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
+78            <meta-data
+78-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\507280e391003b93fb5e3bacec95305e\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:29:13-31:52
+79                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+79-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\507280e391003b93fb5e3bacec95305e\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:30:17-78
+80                android:value="androidx.startup" />
+80-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\507280e391003b93fb5e3bacec95305e\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:31:17-49
+81            <meta-data
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+82                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+83                android:value="androidx.startup" />
+83-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+84        </provider>
+85
+86        <receiver
+86-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+87            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+88            android:directBootAware="false"
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+89            android:enabled="true"
+89-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+90            android:exported="true"
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+91            android:permission="android.permission.DUMP" >
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+92            <intent-filter>
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+93                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+94            </intent-filter>
+95            <intent-filter>
+95-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+96                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+96-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+96-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+97            </intent-filter>
+98            <intent-filter>
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+99                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+99-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+99-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+100            </intent-filter>
+101            <intent-filter>
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+102                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+102-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+102-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\armin\.gradle\caches\9.0-milestone-1\transforms\da6d780904e0e346269fcc40e17224ac\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+103            </intent-filter>
+104        </receiver>
+105    </application>
+106
+107</manifest>

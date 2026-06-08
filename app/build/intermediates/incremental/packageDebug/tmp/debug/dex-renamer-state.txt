@@ -1,4 +1,4 @@
-#Sat Jun 06 22:34:42 GMT+03:30 2026
+#Mon Jun 08 23:45:52 GMT+03:30 2026
 base.0=C\:\\Users\\armin\\Documents\\GitHub\\parkiroid\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
 base.1=C\:\\Users\\armin\\Documents\\GitHub\\parkiroid\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
 base.2=C\:\\Users\\armin\\Documents\\GitHub\\parkiroid\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\11\\classes.dex

@@ -11,4 +11,12 @@
     <string name="stop">Stop Monitoring</string>
     <string name="status_idle">Status: Idle</string>
     <string name="status_running">Status: Running in background</string>
+    <string name="permissions_required">Camera and SMS permissions are required before monitoring can start.</string>
+    <string name="permissions_granted">Permissions granted. Tap Start again.</string>
+    <string name="server_url_recommended">Set a server address in Settings to upload photos and battery data.</string>
+    <string name="camera_preview">Rear camera preview</string>
+    <string name="camera_idle">Camera: not started</string>
+    <string name="camera_opening">Camera: opening…</string>
+    <string name="camera_ready">Camera: live preview active</string>
+    <string name="camera_error">Camera: failed to open — check permission and rear camera</string>
 </resources>

@@ -14,13 +14,9 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -51,7 +47,6 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
     private val settingsStore by lazy { SettingsStore(this) }
     private val io = Executors.newSingleThreadExecutor()
     private val client = OkHttpClient()
-    private var imageCapture: ImageCapture? = null
     private var running = false
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -82,8 +77,8 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         startForeground(NOTIF_ID, buildNotification())
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         acquireWakeLock()
-        bindCamera()
         cachedSettings = runBlocking { settingsStore.settingsFlow.first() }
+        scheduleLoop()
         accel?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
     }
 
@@ -97,34 +92,36 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         stopSelf()
     }
 
-    private fun bindCamera() {
-        val providerFuture = ProcessCameraProvider.getInstance(this)
-        providerFuture.addListener({
-            val provider = providerFuture.get()
-            imageCapture = ImageCapture.Builder()
-                .setJpegQuality(65)
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
-            provider.unbindAll()
-            provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, imageCapture)
-            scheduleLoop()
-        }, ContextCompat.getMainExecutor(this))
-    }
-
     private fun scheduleLoop() {
         io.execute {
             while (running) {
-                val settings = runBlocking { settingsStore.settingsFlow.first() }
-                cachedSettings = settings
-                takePhotoAndSend(settings.serverBaseUrl)
-                sendBatteryInfo(settings.serverBaseUrl)
-                Thread.sleep(settings.periodSec * 1000L)
+                try {
+                    val settings = runBlocking { settingsStore.settingsFlow.first() }
+                    cachedSettings = settings
+                    val baseUrl = settings.serverBaseUrl
+                    if (isValidBaseUrl(baseUrl)) {
+                        takePhotoAndSend(baseUrl)
+                        sendBatteryInfo(baseUrl)
+                    }
+                    Thread.sleep(settings.periodSec * 1000L)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                } catch (_: Exception) {
+                    Thread.sleep(5_000L)
+                }
             }
         }
     }
 
+    private fun isValidBaseUrl(baseUrl: String): Boolean {
+        val trimmed = baseUrl.trim()
+        return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+    }
+
     private fun takePhotoAndSend(baseUrl: String) {
-        val capture = imageCapture ?: return
+        if (!isValidBaseUrl(baseUrl)) return
+        val capture = ParkiroidCamera.imageCapture ?: return
         val file = File.createTempFile("cap_", ".jpg", cacheDir)
         val out = ImageCapture.OutputFileOptions.Builder(file).build()
         capture.takePicture(out, io, object : ImageCapture.OnImageSavedCallback {
@@ -142,6 +139,7 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
     }
 
     private fun sendBatteryInfo(baseUrl: String) {
+        if (!isValidBaseUrl(baseUrl)) return
         val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
         val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         val temp = registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
@@ -176,8 +174,12 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
 
     private fun postAlarm(path: String, smsMessage: String) {
         val settings = runBlocking { settingsStore.settingsFlow.first() }
-        if (settings.serverBaseUrl.isBlank()) return
-        val req = Request.Builder().url("${settings.serverBaseUrl}$path")
+        val baseUrl = settings.serverBaseUrl
+        if (!isValidBaseUrl(baseUrl)) {
+            sendAlarmSms(settings, smsMessage)
+            return
+        }
+        val req = Request.Builder().url("$baseUrl$path")
             .post("{}".toRequestBody("application/json".toMediaType())).build()
         client.newCall(req).execute().close()
         sendAlarmSms(settings, smsMessage)

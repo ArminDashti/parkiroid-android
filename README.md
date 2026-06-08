@@ -1,4 +1,4 @@
-# Parkiroid (Android 11+)
+# Parkiroid (Android 10+)
 
 Minimal Kotlin Android app for low-power background monitoring of a parked vehicle. While monitoring runs, it periodically uploads rear-camera photos and battery telemetry to a configurable **Parkiroid** HTTP server, and reports bumps and violent jolts via server alarms and optional on-device SMS.
 
@@ -7,7 +7,7 @@ Minimal Kotlin Android app for low-power background monitoring of a parked vehic
 | | |
 |---|---|
 | **Purpose** | Watch a parked car in the background with periodic photos, battery status, and motion alarms |
-| **Platform** | Android 11+ (Kotlin), rear camera required |
+| **Platform** | Android 10+ (Kotlin), rear camera required |
 | **Backend** | Parkiroid REST API on a server you configure (IP/host + port) |
 
 ## How to use
@@ -59,7 +59,7 @@ SMS alerts are sent on-device only; there is no server API for SMS.
 
 ## Battery and reliability
 
-- Foreground service (required for reliable background camera use on Android 11+).
+- Foreground service (required for reliable background camera use on Android 10+).
 - Partial wake lock while monitoring.
 - Single-thread executor for capture and uploads.
 - Low JPEG quality and minimize-latency capture mode.

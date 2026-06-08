@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.parkiroid.app-mergeDebugResources-37:/values-nb/values-nb.xml",
+            "outputFile": "com.parkiroid.app-mergeDebugResources-39:/values-nb/values-nb.xml",
             "map": [
                 {
                     "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\cb83fab9b792cb1ab6dac32ed949056c\\transformed\\core-1.13.1\\res\\values-nb\\values-nb.xml",

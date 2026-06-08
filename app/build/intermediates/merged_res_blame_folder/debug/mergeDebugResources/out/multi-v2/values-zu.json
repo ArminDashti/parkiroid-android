@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.parkiroid.app-mergeDebugResources-37:/values-zu/values-zu.xml",
+            "outputFile": "com.parkiroid.app-mergeDebugResources-39:/values-zu/values-zu.xml",
             "map": [
                 {
                     "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\cb83fab9b792cb1ab6dac32ed949056c\\transformed\\core-1.13.1\\res\\values-zu\\values-zu.xml",

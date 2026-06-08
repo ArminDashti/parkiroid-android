@@ -5,14 +5,17 @@
     android:versionName="1.0" >
 
     <uses-sdk
-        android:minSdkVersion="30"
-        android:targetSdkVersion="35" />
+        android:minSdkVersion="29"
+        android:targetSdkVersion="33" />
 
     <uses-feature
         android:name="android.hardware.camera"
         android:required="true" />
     <uses-feature
         android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.telephony"
         android:required="false" />
 
     <uses-permission android:name="android.permission.CAMERA" />
@@ -55,8 +58,7 @@
         <service
             android:name="com.parkiroid.CaptureService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="camera|dataSync" />
+            android:exported="false" />
         <service
             android:name="androidx.camera.core.impl.MetadataHolderService"
             android:enabled="false"

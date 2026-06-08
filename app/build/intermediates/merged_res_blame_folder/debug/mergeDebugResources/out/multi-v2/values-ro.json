@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.parkiroid.app-mergeDebugResources-37:/values-ro/values-ro.xml",
+            "outputFile": "com.parkiroid.app-mergeDebugResources-39:/values-ro/values-ro.xml",
             "map": [
                 {
                     "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\a3a115617773f595fd867a40e3a6097f\\transformed\\material-1.12.0\\res\\values-ro\\values-ro.xml",
