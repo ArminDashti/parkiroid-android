@@ -3177,6 +3177,7 @@ id animateToEnd
 id animateToStart
 id antiClockwise
 id anticipate
+id apiKeyInput
 id arc
 id asConfigured
 id async
@@ -3300,6 +3301,8 @@ id flip
 id floating
 id forever
 id fragment_container_view_tag
+id frameUploadIntervalInput
+id frameUploadIntervalLayout
 id frost
 id fullscreen_header
 id ghost_view
@@ -3369,7 +3372,6 @@ id material_timepicker_ok_button
 id material_timepicker_view
 id material_value_index
 id matrix
-id maxShakeInput
 id message
 id middle
 id mini
@@ -3422,6 +3424,9 @@ id north
 id notification_background
 id notification_main_column
 id notification_main_column_container
+id objectDetectionModeGroup
+id objectDetectionOnDevice
+id objectDetectionServer
 id off
 id on
 id onInterceptTouchReturnSwipe
@@ -3509,7 +3514,6 @@ id sin
 id skipCollapsed
 id skipped
 id slide
-id smsNumberInput
 id snackbar_action
 id snackbar_text
 id snap
@@ -3839,6 +3843,7 @@ string abc_shareactionprovider_share_with
 string abc_shareactionprovider_share_with_application
 string abc_toolbar_collapse_description
 string androidx_startup
+string api_key
 string app_name
 string appbar_scrolling_view_behavior
 string bottom_sheet_behavior
@@ -3859,6 +3864,7 @@ string camera_idle
 string camera_opening
 string camera_preview
 string camera_ready
+string capturing_in_background
 string character_counter_content_description
 string character_counter_overflowed_content_description
 string character_counter_pattern
@@ -3868,9 +3874,10 @@ string error_icon_content_description
 string exposed_dropdown_menu_content_description
 string fab_transformation_scrim_behavior
 string fab_transformation_sheet_behavior
+string frame_upload_interval
+string frame_upload_interval_option
 string hide_bottom_view_on_scroll_behavior
 string icon_content_description
-string invalid_shake_magnitude
 string item_view_role_description
 string m3_exceed_max_badge_text_suffix
 string m3_ref_typeface_brand_medium
@@ -3910,7 +3917,8 @@ string material_timepicker_minute
 string material_timepicker_pm
 string material_timepicker_select_time
 string material_timepicker_text_input_mode_description
-string max_shake_magnitude
+string motion_detected_body
+string motion_detected_title
 string mtrl_badge_numberless_content_description
 string mtrl_checkbox_button_icon_path_checked
 string mtrl_checkbox_button_icon_path_group_name
@@ -3973,6 +3981,13 @@ string mtrl_switch_track_decoration_path
 string mtrl_switch_track_path
 string mtrl_timepicker_cancel
 string mtrl_timepicker_confirm
+string object_detection_mode
+string object_detection_on_device
+string object_detection_server
+string object_detection_server_mode_running
+string object_detection_summary_format
+string object_detection_summary_none
+string parkiroid_running
 string password_toggle_content_description
 string path_password_eye
 string path_password_eye_mask_strike_through
@@ -3991,7 +4006,6 @@ string settings_saved
 string settings_title
 string side_sheet_accessibility_pane_title
 string side_sheet_behavior
-string sms_number
 string start
 string status_bar_notification_info_overflow
 string status_idle

@@ -29,8 +29,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     private val requiredPermissions = arrayOf(
-        Manifest.permission.CAMERA,
-        Manifest.permission.SEND_SMS
+        Manifest.permission.CAMERA
     )
 
     private lateinit var previewView: PreviewView

@@ -37,3 +37,11 @@ Thumbs.db
 
 # Profiling
 *.hprof
+/app/build
+/app/build
+/app/build
+/app/build
+/.gradle
+/.gradle
+/.gradle
+*.lock

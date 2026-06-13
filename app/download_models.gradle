@@ -1,0 +1,13 @@
+ext {
+    ASSET_DIR = "${projectDir}/src/main/assets"
+}
+
+tasks.register("downloadObjectDetectorModel", Download) {
+    src("https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite")
+    dest("${ASSET_DIR}/efficientdet-lite0.tflite")
+    overwrite(false)
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("downloadObjectDetectorModel")
+}

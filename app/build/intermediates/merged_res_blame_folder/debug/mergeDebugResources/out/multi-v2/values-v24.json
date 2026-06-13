@@ -4,7 +4,7 @@
             "outputFile": "com.parkiroid.app-mergeDebugResources-39:/values-v24/values-v24.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\712fd1cc2e596860e506ee8b6954aac9\\transformed\\appcompat-1.7.0\\res\\values-v24\\values-v24.xml",
+                    "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\b6255388fe373aa1698f3b30bd6d16ab\\transformed\\appcompat-1.7.0\\res\\values-v24\\values-v24.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",
@@ -14,7 +14,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\a3a115617773f595fd867a40e3a6097f\\transformed\\material-1.12.0\\res\\values-v24\\values-v24.xml",
+                    "source": "C:\\Users\\armin\\.gradle\\caches\\9.0-milestone-1\\transforms\\bd1581a5933244ee47927444db675ae1\\transformed\\material-1.12.0\\res\\values-v24\\values-v24.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,9,12,15",
                         "startColumns": "4,4,4,4,4,4,4,4",

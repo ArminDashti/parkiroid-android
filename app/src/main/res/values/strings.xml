@@ -1,22 +1,64 @@
 <resources>
+
     <string name="app_name">Parkiroid</string>
+
     <string name="settings_title">Settings</string>
-    <string name="max_shake_magnitude">Max shake magnitude (m/s², default 30)</string>
+
     <string name="server_base_url">Server address (e.g. http://192.168.1.10:8080)</string>
-    <string name="sms_number">SMS number (comma-separated, optional)</string>
+
+    <string name="api_key">API key (matches PARKIROID_API_KEY on server)</string>
+
+    <string name="object_detection_mode">Object detection</string>
+
+    <string name="object_detection_on_device">On device (MediaPipe)</string>
+
+    <string name="object_detection_server">On server (upload frames on interval)</string>
+
+    <string name="frame_upload_interval">Frame upload interval</string>
+
+    <string name="frame_upload_interval_option">%1$d seconds</string>
+
+    <string name="object_detection_summary_none">No cars detected</string>
+
+    <string name="object_detection_summary_format">Detected: %1$s</string>
+
+    <string name="object_detection_server_mode_running">Uploading frames every %1$d s for server detection</string>
+
+    <string name="parkiroid_running">Parkiroid running</string>
+
+    <string name="capturing_in_background">Capturing in background</string>
+
     <string name="settings_saved">Settings saved</string>
-    <string name="invalid_shake_magnitude">Enter a valid shake magnitude (5–80)</string>
+
+    <string name="motion_detected_title">Vehicle motion detected</string>
+
+    <string name="motion_detected_body">Bump detected (%.2f m/s²). Capturing photo now.</string>
+
     <string name="save">Save</string>
+
     <string name="start">Start Monitoring</string>
+
     <string name="stop">Stop Monitoring</string>
+
     <string name="status_idle">Status: Idle</string>
+
     <string name="status_running">Status: Running in background</string>
-    <string name="permissions_required">Camera and SMS permissions are required before monitoring can start.</string>
+
+    <string name="permissions_required">Camera permission is required before monitoring can start.</string>
+
     <string name="permissions_granted">Permissions granted. Tap Start again.</string>
+
     <string name="server_url_recommended">Set a server address in Settings to upload photos and battery data.</string>
+
     <string name="camera_preview">Rear camera preview</string>
+
     <string name="camera_idle">Camera: not started</string>
+
     <string name="camera_opening">Camera: opening…</string>
+
     <string name="camera_ready">Camera: live preview active</string>
+
     <string name="camera_error">Camera: failed to open — check permission and rear camera</string>
+
 </resources>
+

@@ -1,22 +1,21 @@
 # Parkiroid (Android 10+)
 
-Minimal Kotlin Android app for low-power background monitoring of a parked vehicle. While monitoring runs, it periodically uploads rear-camera photos and battery telemetry to a configurable **Parkiroid** HTTP server, and reports bumps and violent jolts via server alarms and optional on-device SMS.
+Minimal Kotlin Android app for low-power background monitoring of a parked vehicle. While monitoring runs, it periodically uploads rear-camera photos and battery telemetry to a configurable **Parkiroid** HTTP server.
 
 ## Overview
 
 | | |
 |---|---|
-| **Purpose** | Watch a parked car in the background with periodic photos, battery status, and motion alarms |
+| **Purpose** | Watch a parked car in the background with periodic photos and battery status |
 | **Platform** | Android 10+ (Kotlin), rear camera required |
 | **Backend** | Parkiroid REST API on a server you configure (IP/host + port) |
 
 ## How to use
 
-1. Install and open the app. Grant **Camera** and **SMS** when prompted (SMS is only needed for alarm texts).
+1. Install and open the app. Grant **Camera** when prompted.
 2. Open **Settings** and set:
    - **Server address** — base URL, e.g. `http://192.168.1.10:8080` (no trailing slash required)
-   - **Max shake magnitude** — acceleration threshold in m/s² for a violent-jolt alarm (default `30`, valid range `5`–`80`)
-   - **SMS number(s)** — optional comma- or semicolon-separated numbers for alarm SMS
+   - **API key** — must match `PARKIROID_API_KEY` on the server (default dev key: `parkiroid-dev-key`)
 3. On the main screen, tap **Start Monitoring** or **Stop Monitoring**.
 4. While running, a persistent notification (*Parkiroid running*) indicates the foreground service is active. Monitoring continues with the screen off.
 
@@ -31,31 +30,19 @@ On each cycle the app:
 1. Captures a JPEG from the rear camera (quality 65, minimize-latency mode).
 2. Posts battery level (%) and battery temperature (°C).
 
-The capture interval is stored as **15 seconds** by default. It is not exposed in the Settings UI yet; changing it requires updating the stored `period_sec` value (minimum 5 seconds in code).
-
-### Motion alarms (accelerometer)
-
-While monitoring, the accelerometer runs continuously. Acceleration magnitude is compared to thresholds derived from **max shake magnitude**:
-
-| Tier | Threshold | Server endpoint | SMS (if numbers configured) |
-|------|-----------|-----------------|-----------------------------|
-| Jarring noise | 60% of max shake (default ~18 m/s²) | `POST .../alarm/jarring-noise` | `Parkiroid: jarring noise detected` |
-| Violent jolt | Max shake (default 30 m/s²) | `POST .../alarm/violent-jolt` | `Parkiroid: violent jolt detected` |
-
-Alarms are rate-limited to **once every 5 seconds**. Server alarm POSTs are skipped if the server URL is empty. SMS is sent only when an alarm fires and at least one phone number is configured.
+The capture interval is stored as **15 seconds** by default. In server object-detection mode, it can be configured in Settings (1–60 seconds).
 
 ## Parkiroid API
 
-Replace `{base}` with your configured server URL (e.g. `http://192.168.1.10:8080`).
+Compatible with [parkiroid-server](https://github.com/parkiroid/parkiroid-server). Replace `{base}` with your configured server URL (e.g. `http://192.168.1.10:8080`).
+
+The app authenticates with `POST /auth`, then sends bearer tokens on protected requests. Each device is identified by its Android ID.
 
 | Action | Method | Path | Body |
 |--------|--------|------|------|
-| Image upload | `POST` | `{base}/parkiroid/api/v1/img` | `multipart/form-data`, field `file` (JPEG) |
-| Battery info | `POST` | `{base}/parkiroid/api/v1/battery/info` | JSON: `batteryPercent`, `batteryTempC` |
-| Jarring alarm | `POST` | `{base}/parkiroid/api/v1/alarm/jarring-noise` | `{}` |
-| Violent jolt alarm | `POST` | `{base}/parkiroid/api/v1/alarm/violent-jolt` | `{}` |
-
-SMS alerts are sent on-device only; there is no server API for SMS.
+| Authenticate | `POST` | `{base}/parkiroid/api/v1/auth` | JSON: `api_key` |
+| Frame upload | `POST` | `{base}/parkiroid/api/v1/frame` | JSON: `device_id`, `image_data` (base64 JPEG), `captured_at` |
+| Device metrics | `POST` | `{base}/parkiroid/api/v1/device-metrics` | JSON: `device_id`, `battery_level_percent`, `temperature_celsius`, `recorded_at` |
 
 ## Battery and reliability
 
@@ -74,16 +61,13 @@ Open the project in Android Studio (Giraffe or newer), sync Gradle, and run on a
 | Permission | Used for |
 |------------|----------|
 | `CAMERA` | Rear-camera capture |
-| `SEND_SMS` | Optional alarm SMS |
 | `FOREGROUND_SERVICE` | Background monitoring |
 | `WAKE_LOCK` | Partial wake lock while monitoring |
-| `INTERNET` | Uploads and alarm POSTs |
+| `INTERNET` | Auth, frame uploads, and device metrics |
 | `ACCESS_NETWORK_STATE` | Network availability |
 
 ## Not included (yet)
 
 - In-app gallery or local image history
 - GPS / location reporting
-- Authentication or HTTPS enforcement (use your server/network as appropriate)
-- Capture-interval control in the Settings UI
-- Remote configuration beyond the Parkiroid endpoints above
+- Motion alarms

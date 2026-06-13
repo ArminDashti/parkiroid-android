@@ -6,10 +6,8 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.graphics.BitmapFactory
 import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
@@ -20,46 +18,43 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.json.JSONObject
 import java.io.File
+import java.time.Instant
 import java.util.concurrent.Executors
-import kotlin.math.sqrt
-
-class CaptureService : Service(), LifecycleOwner, SensorEventListener {
+class CaptureService : Service(), LifecycleOwner {
     companion object {
         const val ACTION_START = "start"
         const val ACTION_STOP = "stop"
         private const val CHANNEL = "capture_channel"
+        private const val MOTION_CHANNEL = "motion_channel"
         private const val NOTIF_ID = 81
+        private const val MOTION_NOTIF_ID = 82
     }
 
     private val lifecycleRegistry = LifecycleRegistry(this)
     override val lifecycle: Lifecycle get() = lifecycleRegistry
 
     private val settingsStore by lazy { SettingsStore(this) }
+    private val deviceId by lazy { DeviceIdentity.resolveDeviceId(this) }
+    private val apiClient by lazy { ParkiroidApiClient(deviceId = deviceId) }
     private val io = Executors.newSingleThreadExecutor()
-    private val client = OkHttpClient()
     private var running = false
     private var wakeLock: PowerManager.WakeLock? = null
 
-    private lateinit var sensorManager: SensorManager
-    private var accel: Sensor? = null
-    private var lastAlarmAt = 0L
     @Volatile private var cachedSettings: AppSettings? = null
+    private var objectDetector: ParkiroidObjectDetector? = null
+    private lateinit var sensorManager: SensorManager
+    private val vehicleMotionDetector = VehicleMotionDetector { peakMps2 ->
+        onVehicleBumpDetected(peakMps2)
+    }
+    @Volatile private var lastMotionTriggeredCaptureAt = 0L
 
     override fun onCreate() {
         super.onCreate()
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        accel = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -78,13 +73,15 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         acquireWakeLock()
         cachedSettings = runBlocking { settingsStore.settingsFlow.first() }
+        syncObjectDetector(cachedSettings)
+        vehicleMotionDetector.register(sensorManager)
         scheduleLoop()
-        accel?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
     }
 
     private fun stopCapture() {
         running = false
-        sensorManager.unregisterListener(this)
+        vehicleMotionDetector.unregister(sensorManager)
+        releaseObjectDetector()
         wakeLock?.release()
         wakeLock = null
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
@@ -98,10 +95,14 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
                 try {
                     val settings = runBlocking { settingsStore.settingsFlow.first() }
                     cachedSettings = settings
+                    syncObjectDetector(settings)
                     val baseUrl = settings.serverBaseUrl
-                    if (isValidBaseUrl(baseUrl)) {
-                        takePhotoAndSend(baseUrl)
-                        sendBatteryInfo(baseUrl)
+                    val hasServer = isValidBaseUrl(baseUrl)
+                    if (hasServer || settings.objectDetectionMode == ObjectDetectionMode.ON_DEVICE) {
+                        captureFrame(settings, baseUrl.takeIf { hasServer })
+                    }
+                    if (hasServer) {
+                        sendDeviceMetrics(baseUrl, settings.apiKey)
                     }
                     Thread.sleep(settings.periodSec * 1000L)
                 } catch (_: InterruptedException) {
@@ -114,84 +115,100 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
         }
     }
 
+    private fun syncObjectDetector(settings: AppSettings?) {
+        when (settings?.objectDetectionMode) {
+            ObjectDetectionMode.ON_DEVICE -> {
+                if (objectDetector == null) {
+                    objectDetector = ParkiroidObjectDetector(this)
+                }
+            }
+            else -> releaseObjectDetector()
+        }
+    }
+
+    private fun releaseObjectDetector() {
+        objectDetector?.close()
+        objectDetector = null
+    }
+
     private fun isValidBaseUrl(baseUrl: String): Boolean {
         val trimmed = baseUrl.trim()
         return trimmed.startsWith("http://") || trimmed.startsWith("https://")
     }
 
-    private fun takePhotoAndSend(baseUrl: String) {
-        if (!isValidBaseUrl(baseUrl)) return
+    private fun onVehicleBumpDetected(peakAccelerationMps2: Float) {
+        io.execute {
+            val now = System.currentTimeMillis()
+            if (now - lastMotionTriggeredCaptureAt < VehicleMotionDetector.COOLDOWN_MS) return@execute
+            lastMotionTriggeredCaptureAt = now
+
+            val settings = cachedSettings ?: return@execute
+            val baseUrl = settings.serverBaseUrl
+            val hasServer = isValidBaseUrl(baseUrl)
+            if (hasServer || settings.objectDetectionMode == ObjectDetectionMode.ON_DEVICE) {
+                captureFrame(settings, baseUrl.takeIf { hasServer })
+            }
+            showMotionAlert(peakAccelerationMps2)
+        }
+    }
+
+    private fun captureFrame(settings: AppSettings, baseUrl: String?) {
         val capture = ParkiroidCamera.imageCapture ?: return
         val file = File.createTempFile("cap_", ".jpg", cacheDir)
+        val capturedAt = Instant.now()
         val out = ImageCapture.OutputFileOptions.Builder(file).build()
         capture.takePicture(out, io, object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                val body = MultipartBody.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart("file", file.name, file.asRequestBody("image/jpeg".toMediaType()))
-                    .build()
-                val req = Request.Builder().url("$baseUrl/parkiroid/api/v1/img").post(body).build()
-                client.newCall(req).execute().close()
+                when (settings.objectDetectionMode) {
+                    ObjectDetectionMode.ON_DEVICE -> {
+                        val detectionSummary = runOnDeviceObjectDetection(file, settings)
+                        updateNotification(settings, detectionSummary)
+                    }
+                    ObjectDetectionMode.SERVER -> {
+                        if (baseUrl != null) {
+                            apiClient.submitFrame(baseUrl, settings.apiKey, file, capturedAt)
+                        }
+                        updateNotification(settings, null)
+                    }
+                }
                 file.delete()
             }
 
-            override fun onError(exception: ImageCaptureException) {}
+            override fun onError(exception: ImageCaptureException) {
+                file.delete()
+            }
         })
     }
 
-    private fun sendBatteryInfo(baseUrl: String) {
+    private fun runOnDeviceObjectDetection(jpegFile: File, settings: AppSettings): String? {
+        if (settings.objectDetectionMode != ObjectDetectionMode.ON_DEVICE) return null
+        val detector = objectDetector ?: return null
+        val bitmap = BitmapFactory.decodeFile(jpegFile.absolutePath) ?: return null
+        return try {
+            val result = detector.detect(bitmap)
+            ParkiroidObjectDetector.logResult(result)
+            ParkiroidObjectDetector.summarize(result)
+        } catch (_: Exception) {
+            null
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun sendDeviceMetrics(baseUrl: String, apiKey: String) {
         if (!isValidBaseUrl(baseUrl)) return
         val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
         val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         val temp = registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             ?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0)?.div(10f) ?: 0f
-        val payload = JSONObject()
-            .put("batteryPercent", level)
-            .put("batteryTempC", temp)
-            .toString()
-            .toRequestBody("application/json".toMediaType())
-        val req = Request.Builder().url("$baseUrl/parkiroid/api/v1/battery/info").post(payload).build()
-        client.newCall(req).execute().close()
+        apiClient.submitDeviceMetrics(
+            baseUrl = baseUrl,
+            apiKey = apiKey,
+            batteryLevelPercent = level,
+            temperatureCelsius = temp,
+            recordedAt = Instant.now()
+        )
     }
-
-    override fun onSensorChanged(event: SensorEvent?) {
-        val e = event ?: return
-        val mag = sqrt((e.values[0] * e.values[0] + e.values[1] * e.values[1] + e.values[2] * e.values[2]).toDouble())
-        val now = System.currentTimeMillis()
-        if (now - lastAlarmAt < 5000) return
-
-        val settings = cachedSettings ?: runBlocking { settingsStore.settingsFlow.first() }
-        val violentThreshold = settings.maxShakeMagnitude.toDouble()
-        val jarringThreshold = settings.jarringShakeMagnitude.toDouble()
-
-        if (mag > violentThreshold) {
-            postAlarm("/parkiroid/api/v1/alarm/violent-jolt", "Parkiroid: violent jolt detected")
-            lastAlarmAt = now
-        } else if (mag > jarringThreshold) {
-            postAlarm("/parkiroid/api/v1/alarm/jarring-noise", "Parkiroid: jarring noise detected")
-            lastAlarmAt = now
-        }
-    }
-
-    private fun postAlarm(path: String, smsMessage: String) {
-        val settings = runBlocking { settingsStore.settingsFlow.first() }
-        val baseUrl = settings.serverBaseUrl
-        if (!isValidBaseUrl(baseUrl)) {
-            sendAlarmSms(settings, smsMessage)
-            return
-        }
-        val req = Request.Builder().url("$baseUrl$path")
-            .post("{}".toRequestBody("application/json".toMediaType())).build()
-        client.newCall(req).execute().close()
-        sendAlarmSms(settings, smsMessage)
-    }
-
-    private fun sendAlarmSms(settings: AppSettings, message: String) {
-        val numbers = settingsStore.parsePhoneNumbers(settings.alertPhoneNumbers)
-        if (numbers.isEmpty()) return
-        SmsSender.sendToAll(this, numbers, message)
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -199,15 +216,48 @@ class CaptureService : Service(), LifecycleOwner, SensorEventListener {
             nm.createNotificationChannel(
                 NotificationChannel(CHANNEL, "Capture Service", NotificationManager.IMPORTANCE_LOW)
             )
+            nm.createNotificationChannel(
+                NotificationChannel(MOTION_CHANNEL, "Motion Alerts", NotificationManager.IMPORTANCE_HIGH)
+            )
         }
     }
 
-    private fun buildNotification(): Notification = NotificationCompat.Builder(this, CHANNEL)
-        .setContentTitle("Parkiroid running")
-        .setContentText("Capturing in background")
-        .setSmallIcon(android.R.drawable.ic_menu_camera)
-        .setOngoing(true)
-        .build()
+    private fun showMotionAlert(peakAccelerationMps2: Float) {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        val notification = NotificationCompat.Builder(this, MOTION_CHANNEL)
+            .setContentTitle(getString(R.string.motion_detected_title))
+            .setContentText(getString(R.string.motion_detected_body, peakAccelerationMps2))
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(MOTION_NOTIF_ID, notification)
+    }
+
+    private fun buildNotification(detectionSummary: String? = null): Notification {
+        val settings = cachedSettings
+        val contentText = when {
+            detectionSummary != null -> getString(R.string.object_detection_summary_format, detectionSummary)
+            settings?.objectDetectionMode == ObjectDetectionMode.SERVER ->
+                getString(R.string.object_detection_server_mode_running, settings.periodSec)
+            else -> getString(R.string.capturing_in_background)
+        }
+        return NotificationCompat.Builder(this, CHANNEL)
+            .setContentTitle(getString(R.string.parkiroid_running))
+            .setContentText(contentText)
+            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun updateNotification(settings: AppSettings, detectionSummary: String?) {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        val summary = when (settings.objectDetectionMode) {
+            ObjectDetectionMode.ON_DEVICE -> detectionSummary ?: getString(R.string.object_detection_summary_none)
+            ObjectDetectionMode.SERVER -> null
+        }
+        notificationManager.notify(NOTIF_ID, buildNotification(summary))
+    }
 
     private fun acquireWakeLock() {
         val pm = getSystemService(POWER_SERVICE) as PowerManager
