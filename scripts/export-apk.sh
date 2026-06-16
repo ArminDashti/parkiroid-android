@@ -51,6 +51,67 @@ if [[ "$variant" != "debug" && "$variant" != "release" ]]; then
   exit 1
 fi
 
+get_java_major_version() {
+  local java_exe="$1"
+  local version_line
+  version_line="$("$java_exe" -version 2>&1 | head -n1)"
+  if [[ "$version_line" =~ version\ \"([0-9]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+    return
+  fi
+  if [[ "$version_line" =~ version\ \"1\.([0-9]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+    return
+  fi
+  echo 0
+}
+
+resolve_gradle_java_home() {
+  local candidates=()
+  local candidate java_exe major
+
+  if [[ -n "${JAVA_HOME:-}" && -x "$JAVA_HOME/bin/java" ]]; then
+    candidates+=("$JAVA_HOME")
+  fi
+
+  local search_roots=(
+    "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+    "$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+    "/opt/android-studio/jbr"
+    "/usr/lib/jvm"
+    "/usr/local/opt/openjdk"
+    "/usr/local/opt/openjdk@17"
+    "/usr/local/opt/openjdk@21"
+  )
+
+  local root
+  for root in "${search_roots[@]}"; do
+    if [[ -x "$root/bin/java" ]]; then
+      candidates+=("$root")
+      continue
+    fi
+    if [[ -d "$root" ]]; then
+      while IFS= read -r candidate; do
+        candidates+=("$candidate")
+      done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+    fi
+  done
+
+  for candidate in "${candidates[@]}"; do
+    java_exe="$candidate/bin/java"
+    if [[ ! -x "$java_exe" ]]; then
+      continue
+    fi
+    major="$(get_java_major_version "$java_exe")"
+    if [[ "$major" -ge 11 ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd "$script_dir/.." && pwd)"
 gradlew="$project_root/gradlew"
@@ -75,6 +136,18 @@ if [[ "$variant" == "release" ]]; then
   gradle_args+=(assembleRelease)
 else
   gradle_args+=(assembleDebug)
+fi
+
+gradle_java_home="$(resolve_gradle_java_home || true)"
+if [[ -z "$gradle_java_home" ]]; then
+  echo "No Java 11+ runtime found. Android Gradle Plugin 8.5 requires JDK 11 or newer." >&2
+  echo "Install a JDK or set JAVA_HOME to a Java 11+ installation." >&2
+  exit 1
+fi
+
+if [[ "${JAVA_HOME:-}" != "$gradle_java_home" ]]; then
+  echo "Using Java from: $gradle_java_home"
+  export JAVA_HOME="$gradle_java_home"
 fi
 
 echo "Building ${variant} APK..."

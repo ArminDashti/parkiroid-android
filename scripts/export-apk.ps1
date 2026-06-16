@@ -36,6 +36,136 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Get-JavaMajorVersion {
+    param([string] $JavaExe)
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $JavaExe -version 2>&1 | ForEach-Object { "$_" } | Out-String
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($output -match 'version "(\d+)') {
+        return [int] $Matches[1]
+    }
+    if ($output -match 'version "1\.(\d+)') {
+        return [int] $Matches[1]
+    }
+    return 0
+}
+
+function Resolve-GradleJavaHome {
+    $candidates = [System.Collections.Generic.List[string]]::new()
+
+    if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+        $candidates.Add($env:JAVA_HOME)
+    }
+
+    $searchRoots = @(
+        (Join-Path $env:ProgramFiles 'Android\Android Studio\jbr'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Android\Android Studio\jbr'),
+        (Join-Path $env:ProgramFiles 'Eclipse Adoptium'),
+        (Join-Path $env:ProgramFiles 'Java'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Eclipse Adoptium')
+    )
+
+    foreach ($root in $searchRoots) {
+        if (-not (Test-Path $root)) {
+            continue
+        }
+
+        if (Test-Path (Join-Path $root 'bin\java.exe')) {
+            $candidates.Add($root)
+            continue
+        }
+
+        Get-ChildItem -Path $root -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { $candidates.Add($_.FullName) }
+    }
+
+    foreach ($candidateHome in ($candidates | Select-Object -Unique)) {
+        $javaExe = Join-Path $candidateHome 'bin\java.exe'
+        if (-not (Test-Path $javaExe)) {
+            continue
+        }
+        if ((Get-JavaMajorVersion -JavaExe $javaExe) -ge 11) {
+            return $candidateHome
+        }
+    }
+
+    return $null
+}
+
+function Resolve-AndroidSdkDir {
+    $candidates = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($envName in @('ANDROID_HOME', 'ANDROID_SDK_ROOT')) {
+        $value = [Environment]::GetEnvironmentVariable($envName)
+        if ($value) {
+            $candidates.Add($value)
+        }
+    }
+
+    $searchRoots = @(
+        (Join-Path $env:LOCALAPPDATA 'Android\Sdk'),
+        (Join-Path $env:USERPROFILE 'AppData\Local\Android\Sdk'),
+        'C:\Android\Sdk'
+    )
+
+    foreach ($root in $searchRoots) {
+        $candidates.Add($root)
+    }
+
+    $localPropertiesPath = Join-Path $projectRoot 'local.properties'
+    if (Test-Path $localPropertiesPath) {
+        $localProperties = Get-Content -Raw -Path $localPropertiesPath
+        if ($localProperties -match '(?m)^sdk\.dir=(.+)$') {
+            $sdkDir = $Matches[1].Trim() -replace '\\:', ':' -replace '\\\\', '\'
+            $candidates.Add($sdkDir)
+        }
+    }
+
+    foreach ($sdkDir in ($candidates | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($sdkDir)) {
+            continue
+        }
+        if ((Test-Path $sdkDir) -and (Test-Path (Join-Path $sdkDir 'platforms'))) {
+            return $sdkDir
+        }
+    }
+
+    return $null
+}
+
+function Ensure-LocalPropertiesSdkDir {
+    param([string] $SdkDir)
+
+    $localPropertiesPath = Join-Path $projectRoot 'local.properties'
+    $escapedSdkDir = ($SdkDir -replace '\\', '\\')
+    $sdkLine = "sdk.dir=$escapedSdkDir"
+
+    if (-not (Test-Path $localPropertiesPath)) {
+        @(
+            '## This file is generated locally and must not be checked into version control.',
+            $sdkLine
+        ) | Set-Content -Path $localPropertiesPath -Encoding UTF8
+        return
+    }
+
+    $localProperties = Get-Content -Raw -Path $localPropertiesPath
+    if ($localProperties -match '(?m)^sdk\.dir=') {
+        $localProperties = [regex]::Replace($localProperties, '(?m)^sdk\.dir=.*$', $sdkLine)
+    }
+    else {
+        $localProperties = $localProperties.TrimEnd() + [Environment]::NewLine + $sdkLine + [Environment]::NewLine
+    }
+
+    Set-Content -Path $localPropertiesPath -Value $localProperties -Encoding UTF8 -NoNewline
+}
+
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $gradlew = Join-Path $projectRoot 'gradlew.bat'
 
@@ -57,6 +187,37 @@ if ($Clean) {
 
 $assembleTask = if ($Variant -eq 'Release') { 'assembleRelease' } else { 'assembleDebug' }
 $gradleArgs += $assembleTask
+
+$gradleJavaHome = Resolve-GradleJavaHome
+if (-not $gradleJavaHome) {
+    throw @(
+        'No Java 11+ runtime found. Android Gradle Plugin 8.5 requires JDK 11 or newer.',
+        'Install a JDK or set JAVA_HOME to Android Studio''s bundled runtime, e.g.:',
+        '  $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"'
+    ) -join [Environment]::NewLine
+}
+
+if ($env:JAVA_HOME -ne $gradleJavaHome) {
+    Write-Host "Using Java from: $gradleJavaHome"
+    $env:JAVA_HOME = $gradleJavaHome
+}
+
+$androidSdkDir = Resolve-AndroidSdkDir
+if (-not $androidSdkDir) {
+    throw @(
+        'Android SDK not found. Install it via Android Studio:',
+        '  Settings > Languages & Frameworks > Android SDK',
+        'or set ANDROID_HOME to your SDK path, e.g.:',
+        "  `$env:ANDROID_HOME = `"$env:LOCALAPPDATA\Android\Sdk`""
+    ) -join [Environment]::NewLine
+}
+
+Ensure-LocalPropertiesSdkDir -SdkDir $androidSdkDir
+if ($env:ANDROID_HOME -ne $androidSdkDir) {
+    Write-Host "Using Android SDK from: $androidSdkDir"
+    $env:ANDROID_HOME = $androidSdkDir
+    $env:ANDROID_SDK_ROOT = $androidSdkDir
+}
 
 Write-Host "Building $Variant APK..."
 Push-Location $projectRoot

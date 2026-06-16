@@ -26,7 +26,7 @@ class SettingsStore(private val context: Context) {
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { pref ->
         AppSettings(
-            serverBaseUrl = pref[urlKey] ?: "",
+            serverBaseUrl = pref[urlKey] ?: DEFAULT_SERVER_BASE_URL,
             apiKey = pref[apiKeyKey] ?: DEFAULT_API_KEY,
             periodSec = normalizeFrameUploadInterval(pref[periodKey] ?: DEFAULT_PERIOD_SEC),
             objectDetectionMode = ObjectDetectionMode.fromStoredValue(pref[objectDetectionModeKey])
@@ -48,6 +48,7 @@ class SettingsStore(private val context: Context) {
     }
 
     companion object {
+        const val DEFAULT_SERVER_BASE_URL = "https://parkiroid.xaigrok.ir"
         const val DEFAULT_API_KEY = "parkiroid-dev-key"
         const val DEFAULT_PERIOD_SEC = 15
         val ALLOWED_FRAME_UPLOAD_INTERVALS_SEC = listOf(1, 5, 10, 15, 30, 45, 60)
