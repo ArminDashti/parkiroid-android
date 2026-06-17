@@ -10,7 +10,7 @@
 
     <string name="object_detection_mode">Object detection</string>
 
-    <string name="object_detection_on_device">On device (MediaPipe)</string>
+    <string name="object_detection_on_device">On device (YOLO26n)</string>
 
     <string name="object_detection_server">On server (upload frames on interval)</string>
 
@@ -18,7 +18,13 @@
 
     <string name="frame_upload_interval_option">%1$d seconds</string>
 
-    <string name="object_detection_summary_none">No cars detected</string>
+    <string name="confidence_threshold">Confidence threshold</string>
+
+    <string name="confidence_threshold_value">%1$d%%</string>
+
+    <string name="show_bounding_boxes">Show bounding boxes on camera preview</string>
+
+    <string name="object_detection_summary_none">No vehicles detected</string>
 
     <string name="object_detection_summary_format">Detected: %1$s</string>
 

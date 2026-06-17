@@ -7,7 +7,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.hardware.SensorManager
-import android.graphics.BitmapFactory
 import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
@@ -183,9 +182,9 @@ class CaptureService : Service(), LifecycleOwner {
     private fun runOnDeviceObjectDetection(jpegFile: File, settings: AppSettings): String? {
         if (settings.objectDetectionMode != ObjectDetectionMode.ON_DEVICE) return null
         val detector = objectDetector ?: return null
-        val bitmap = BitmapFactory.decodeFile(jpegFile.absolutePath) ?: return null
+        val bitmap = ParkiroidObjectDetector.decodeJpegForDetection(jpegFile) ?: return null
         return try {
-            val result = detector.detect(bitmap)
+            val result = detector.detect(bitmap, settings.confidenceThreshold)
             ParkiroidObjectDetector.logResult(result)
             ParkiroidObjectDetector.summarize(result)
         } catch (_: Exception) {
