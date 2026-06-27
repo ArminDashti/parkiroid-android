@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlin.math.roundToInt
 import androidx.datastore.preferences.preferencesDataStore
@@ -16,7 +16,7 @@ private val Context.dataStore by preferencesDataStore("parkiroid_settings")
 data class AppSettings(
     val serverBaseUrl: String,
     val apiKey: String,
-    val periodSec: Int,
+    val captureIntervalMs: Long,
     /** Where object detection runs: on the phone or on the server. */
     val objectDetectionMode: ObjectDetectionMode,
     /** Minimum detection confidence (0–1) required to show a bounding box. */
@@ -28,7 +28,7 @@ data class AppSettings(
 class SettingsStore(private val context: Context) {
     private val urlKey = stringPreferencesKey("server_url")
     private val apiKeyKey = stringPreferencesKey("api_key")
-    private val periodKey = intPreferencesKey("period_sec")
+    private val intervalKey = longPreferencesKey("capture_interval_ms")
     private val objectDetectionModeKey = stringPreferencesKey("object_detection_mode")
     private val confidenceThresholdKey = floatPreferencesKey("confidence_threshold")
     private val showBoundingBoxesKey = booleanPreferencesKey("show_bounding_boxes")
@@ -37,7 +37,7 @@ class SettingsStore(private val context: Context) {
         AppSettings(
             serverBaseUrl = pref[urlKey] ?: DEFAULT_SERVER_BASE_URL,
             apiKey = pref[apiKeyKey] ?: DEFAULT_API_KEY,
-            periodSec = normalizeFrameUploadInterval(pref[periodKey] ?: DEFAULT_PERIOD_SEC),
+            captureIntervalMs = normalizeIntervalMs(pref[intervalKey] ?: DEFAULT_INTERVAL_MS),
             objectDetectionMode = ObjectDetectionMode.fromStoredValue(pref[objectDetectionModeKey]),
             confidenceThreshold = normalizeConfidenceThreshold(
                 pref[confidenceThresholdKey] ?: DEFAULT_CONFIDENCE_THRESHOLD
@@ -50,14 +50,14 @@ class SettingsStore(private val context: Context) {
         serverUrl: String,
         apiKey: String,
         objectDetectionMode: ObjectDetectionMode,
-        periodSec: Int = 15,
+        intervalMs: Long = DEFAULT_INTERVAL_MS,
         confidenceThreshold: Float = DEFAULT_CONFIDENCE_THRESHOLD,
         showBoundingBoxes: Boolean = DEFAULT_SHOW_BOUNDING_BOXES
     ) {
         context.dataStore.edit { pref ->
             pref[urlKey] = serverUrl.trim().trimEnd('/')
             pref[apiKeyKey] = apiKey.trim()
-            pref[periodKey] = normalizeFrameUploadInterval(periodSec)
+            pref[intervalKey] = normalizeIntervalMs(intervalMs)
             pref[objectDetectionModeKey] = objectDetectionMode.toStoredValue()
             pref[confidenceThresholdKey] = normalizeConfidenceThreshold(confidenceThreshold)
             pref[showBoundingBoxesKey] = showBoundingBoxes
@@ -67,16 +67,21 @@ class SettingsStore(private val context: Context) {
     companion object {
         const val DEFAULT_SERVER_BASE_URL = "https://parkiroid.xaigrok.ir"
         const val DEFAULT_API_KEY = "parkiroid-dev-key"
-        const val DEFAULT_PERIOD_SEC = 15
+        const val DEFAULT_INTERVAL_MS = 15000L
+        const val MIN_INTERVAL_MS = 500L
+        const val MAX_INTERVAL_MS = 120000L
+        const val INTERVAL_STEP_MS = 500L
         const val DEFAULT_CONFIDENCE_THRESHOLD = 0.25f
         const val DEFAULT_SHOW_BOUNDING_BOXES = false
         const val MIN_CONFIDENCE_THRESHOLD = 0.10f
         const val MAX_CONFIDENCE_THRESHOLD = 0.90f
         const val CONFIDENCE_THRESHOLD_STEP = 0.05f
-        val ALLOWED_FRAME_UPLOAD_INTERVALS_SEC = listOf(1, 5, 10, 15, 30, 45, 60)
 
-        fun normalizeFrameUploadInterval(seconds: Int): Int =
-            if (seconds in ALLOWED_FRAME_UPLOAD_INTERVALS_SEC) seconds else DEFAULT_PERIOD_SEC
+        fun normalizeIntervalMs(intervalMs: Long): Long {
+            val clamped = intervalMs.coerceIn(MIN_INTERVAL_MS, MAX_INTERVAL_MS)
+            val steps = ((clamped - MIN_INTERVAL_MS) / INTERVAL_STEP_MS).roundToInt()
+            return MIN_INTERVAL_MS + steps * INTERVAL_STEP_MS
+        }
 
         fun normalizeConfidenceThreshold(value: Float): Float {
             val clamped = value.coerceIn(MIN_CONFIDENCE_THRESHOLD, MAX_CONFIDENCE_THRESHOLD)

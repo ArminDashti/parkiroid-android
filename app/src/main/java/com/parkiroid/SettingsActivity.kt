@@ -24,7 +24,7 @@ import kotlin.math.roundToInt
 class SettingsActivity : AppCompatActivity() {
     private val settingsStore by lazy { SettingsStore(this) }
     private val scope = CoroutineScope(Dispatchers.Main + Job())
-    private var selectedFrameUploadIntervalSec = SettingsStore.DEFAULT_PERIOD_SEC
+    private var selectedIntervalSec = SettingsStore.DEFAULT_INTERVAL_SEC
     private var selectedConfidenceThreshold = SettingsStore.DEFAULT_CONFIDENCE_THRESHOLD
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,7 +43,7 @@ class SettingsActivity : AppCompatActivity() {
         val showBoundingBoxesSwitch = findViewById<MaterialSwitch>(R.id.showBoundingBoxesSwitch)
         val saveBtn = findViewById<Button>(R.id.saveBtn)
 
-        val allowedIntervals = SettingsStore.ALLOWED_FRAME_UPLOAD_INTERVALS_SEC
+        val allowedIntervals = SettingsStore.ALLOWED_INTERVALS_SEC
         val intervalLabels = allowedIntervals.map { seconds ->
             getString(R.string.frame_upload_interval_option, seconds)
         }
@@ -51,13 +51,13 @@ class SettingsActivity : AppCompatActivity() {
             ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, intervalLabels)
         )
         frameUploadIntervalInput.setOnItemClickListener { _, _, position, _ ->
-            selectedFrameUploadIntervalSec = allowedIntervals[position]
+            selectedIntervalSec = allowedIntervals[position].toFloat()
         }
 
-        fun setSelectedFrameUploadInterval(seconds: Int) {
-            val normalizedSeconds = SettingsStore.normalizeFrameUploadInterval(seconds)
-            selectedFrameUploadIntervalSec = normalizedSeconds
-            val labelIndex = allowedIntervals.indexOf(normalizedSeconds).coerceAtLeast(0)
+        fun setSelectedIntervalSec(intervalSec: Float) {
+            val normalizedSeconds = SettingsStore.normalizeFrameUploadIntervalSec(intervalSec)
+            selectedIntervalSec = normalizedSeconds
+            val labelIndex = allowedIntervals.indexOf(normalizedSeconds.toInt()).coerceAtLeast(0)
             frameUploadIntervalInput.setText(intervalLabels[labelIndex], false)
         }
 
@@ -93,7 +93,7 @@ class SettingsActivity : AppCompatActivity() {
             val settings = settingsStore.settingsFlow.first()
             serverInput.setText(settings.serverBaseUrl)
             apiKeyInput.setText(settings.apiKey)
-            setSelectedFrameUploadInterval(settings.periodSec)
+            setSelectedIntervalSec(settings.intervalSec)
             setSelectedConfidenceThreshold(settings.confidenceThreshold)
             showBoundingBoxesSwitch.isChecked = settings.showBoundingBoxes
             val selectedModeViewId = when (settings.objectDetectionMode) {
@@ -110,10 +110,10 @@ class SettingsActivity : AppCompatActivity() {
                 else -> ObjectDetectionMode.SERVER
             }
 
-            val periodSec = if (objectDetectionMode == ObjectDetectionMode.SERVER) {
-                selectedFrameUploadIntervalSec
+            val intervalSec = if (objectDetectionMode == ObjectDetectionMode.SERVER) {
+                selectedIntervalSec
             } else {
-                SettingsStore.DEFAULT_PERIOD_SEC
+                SettingsStore.DEFAULT_INTERVAL_SEC
             }
 
             scope.launch {
@@ -121,7 +121,7 @@ class SettingsActivity : AppCompatActivity() {
                     serverUrl = serverInput.text?.toString().orEmpty(),
                     apiKey = apiKeyInput.text?.toString().orEmpty(),
                     objectDetectionMode = objectDetectionMode,
-                    periodSec = periodSec,
+                    intervalSec = intervalSec,
                     confidenceThreshold = selectedConfidenceThreshold,
                     showBoundingBoxes = showBoundingBoxesSwitch.isChecked
                 )

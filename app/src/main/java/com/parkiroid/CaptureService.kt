@@ -103,7 +103,7 @@ class CaptureService : Service(), LifecycleOwner {
                     if (hasServer) {
                         sendDeviceMetrics(baseUrl, settings.apiKey)
                     }
-                    Thread.sleep(settings.periodSec * 1000L)
+                    Thread.sleep((settings.intervalSec * 1000L).toLong())
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
                     break
