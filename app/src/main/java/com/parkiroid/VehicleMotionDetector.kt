@@ -7,10 +7,7 @@ import android.hardware.SensorManager
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-/**
- * Detects vehicle bumps and jolts from phone motion sensors.
- * Tuned for high sensitivity — catches gentle parking-lot contacts and light collisions.
- */
+/** Detects vehicle bumps and jolts from phone motion sensors, tuned for parking-lot sensitivity. */
 class VehicleMotionDetector(
     private val onBumpDetected: (peakAccelerationMps2: Float) -> Unit
 ) : SensorEventListener {
@@ -23,6 +20,7 @@ class VehicleMotionDetector(
     private var lastTriggerAtMs = 0L
     private var hasBaseline = false
 
+    /** Subscribes to linear acceleration or accelerometer updates at game rate. */
     fun register(sensorManager: SensorManager): Boolean {
         val linearSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
         val sensor = linearSensor ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: return false
@@ -31,11 +29,13 @@ class VehicleMotionDetector(
         return true
     }
 
+    /** Stops listening and clears internal motion state. */
     fun unregister(sensorManager: SensorManager) {
         sensorManager.unregisterListener(this)
         resetState()
     }
 
+    /** Evaluates each sensor sample for peak, deviation, and jerk bump signatures. */
     override fun onSensorChanged(event: SensorEvent) {
         val magnitude = if (usesLinearAcceleration) {
             val x = event.values[0]
@@ -68,7 +68,7 @@ class VehicleMotionDetector(
 
         val isBump = magnitude >= PEAK_ACCELERATION_THRESHOLD_MPS2 ||
             deviation >= DEVIATION_THRESHOLD_MPS2 ||
-            jerk >= JERK_THRESHOLD_MPS3
+            jerk >= JERK_SENSITIVITY_MPS3
 
         if (!isBump) return
 
@@ -77,6 +77,7 @@ class VehicleMotionDetector(
         onBumpDetected(magnitude)
     }
 
+    /** Estimates linear acceleration from raw accelerometer readings by subtracting gravity. */
     private fun resolveLinearMagnitude(rawValues: FloatArray): Float {
         for (axis in 0..2) {
             gravityEstimate[axis] =
@@ -89,6 +90,7 @@ class VehicleMotionDetector(
         return sqrt(linearX * linearX + linearY * linearY + linearZ * linearZ)
     }
 
+    /** Clears baseline tracking so the next sample re-establishes resting motion. */
     private fun resetState() {
         hasBaseline = false
         baselineMagnitude = 0f
@@ -97,6 +99,7 @@ class VehicleMotionDetector(
         gravityEstimate.fill(0f)
     }
 
+    /** No-op; sensor accuracy changes do not affect bump detection. */
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     companion object {
@@ -107,8 +110,8 @@ class VehicleMotionDetector(
         private const val PEAK_ACCELERATION_THRESHOLD_MPS2 = 0.10f
         /** Deviation from the resting baseline — catches force transferred through the car body. */
         private const val DEVIATION_THRESHOLD_MPS2 = 0.07f
-        /** Sudden rate-of-change catches brief impulses that stay below peak thresholds. */
-        private const val JERK_THRESHOLD_MPS3 = 1.2f
+        /** Jerk sensitivity threshold (rate-of-change of acceleration) to detect brief impulses. */
+        private const val JERK_SENSITIVITY_MPS3 = 1.2f
         private const val BASELINE_SMOOTHING = 0.992f
     }
 }

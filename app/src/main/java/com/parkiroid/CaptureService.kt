@@ -22,6 +22,9 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.Executors
+
+
+/** Foreground service that captures frames, detects motion, and uploads telemetry in the background. */
 class CaptureService : Service(), LifecycleOwner {
     companion object {
         const val ACTION_START = "start"
@@ -50,12 +53,14 @@ class CaptureService : Service(), LifecycleOwner {
     }
     @Volatile private var lastMotionTriggeredCaptureAt = 0L
 
+    /** Initializes lifecycle state and the motion sensor manager. */
     override fun onCreate() {
         super.onCreate()
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
+    /** Handles start/stop intents and keeps the service sticky while monitoring is active. */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> stopCapture()
@@ -64,6 +69,7 @@ class CaptureService : Service(), LifecycleOwner {
         return START_STICKY
     }
 
+    /** Promotes to foreground, loads settings, and begins the capture loop. */
     private fun startCapture() {
         if (running) return
         running = true
@@ -77,6 +83,7 @@ class CaptureService : Service(), LifecycleOwner {
         scheduleLoop()
     }
 
+    /** Tears down sensors, detector, wake lock, and stops the foreground service. */
     private fun stopCapture() {
         running = false
         vehicleMotionDetector.unregister(sensorManager)
@@ -88,6 +95,7 @@ class CaptureService : Service(), LifecycleOwner {
         stopSelf()
     }
 
+    /** Runs periodic frame capture and metrics upload on a background executor thread. */
     private fun scheduleLoop() {
         io.execute {
             while (running) {
@@ -114,6 +122,7 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    /** Creates or releases the on-device detector based on the current detection mode. */
     private fun syncObjectDetector(settings: AppSettings?) {
         when (settings?.objectDetectionMode) {
             ObjectDetectionMode.ON_DEVICE -> {
@@ -125,16 +134,19 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    /** Closes and clears the lazily initialized ONNX detector. */
     private fun releaseObjectDetector() {
         objectDetector?.close()
         objectDetector = null
     }
 
+    /** Returns true when the configured base URL uses an HTTP or HTTPS scheme. */
     private fun isValidBaseUrl(baseUrl: String): Boolean {
         val trimmed = baseUrl.trim()
         return trimmed.startsWith("http://") || trimmed.startsWith("https://")
     }
 
+    /** Triggers an extra capture and motion alert when a bump is detected within cooldown limits. */
     private fun onVehicleBumpDetected(peakAccelerationMps2: Float) {
         io.execute {
             val now = System.currentTimeMillis()
@@ -151,12 +163,14 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    /** Takes a rear-camera JPEG and routes it to on-device detection or server upload. */
     private fun captureFrame(settings: AppSettings, baseUrl: String?) {
         val capture = ParkiroidCamera.imageCapture ?: return
         val file = File.createTempFile("cap_", ".jpg", cacheDir)
         val capturedAt = Instant.now()
         val out = ImageCapture.OutputFileOptions.Builder(file).build()
         capture.takePicture(out, io, object : ImageCapture.OnImageSavedCallback {
+            /** Routes the saved JPEG to detection or upload, then deletes the temp file. */
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                 when (settings.objectDetectionMode) {
                     ObjectDetectionMode.ON_DEVICE -> {
@@ -173,12 +187,14 @@ class CaptureService : Service(), LifecycleOwner {
                 file.delete()
             }
 
+            /** Discards the temp file when capture fails. */
             override fun onError(exception: ImageCaptureException) {
                 file.delete()
             }
         })
     }
 
+    /** Runs YOLO inference on a saved JPEG and returns a notification summary string. */
     private fun runOnDeviceObjectDetection(jpegFile: File, settings: AppSettings): String? {
         if (settings.objectDetectionMode != ObjectDetectionMode.ON_DEVICE) return null
         val detector = objectDetector ?: return null
@@ -194,6 +210,7 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    /** Reads battery level and temperature, then posts device metrics to the server. */
     private fun sendDeviceMetrics(baseUrl: String, apiKey: String) {
         if (!isValidBaseUrl(baseUrl)) return
         val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
@@ -209,6 +226,7 @@ class CaptureService : Service(), LifecycleOwner {
         )
     }
 
+    /** Registers low-importance capture and high-importance motion notification channels. */
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NotificationManager::class.java)
@@ -221,6 +239,7 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    /** Shows a one-shot high-priority notification when vehicle motion is detected. */
     private fun showMotionAlert(peakAccelerationMps2: Float) {
         val notificationManager = getSystemService(NotificationManager::class.java)
         val notification = NotificationCompat.Builder(this, MOTION_CHANNEL)
@@ -233,6 +252,7 @@ class CaptureService : Service(), LifecycleOwner {
         notificationManager.notify(MOTION_NOTIF_ID, notification)
     }
 
+    /** Builds the persistent foreground notification shown while monitoring runs. */
     private fun buildNotification(detectionSummary: String? = null): Notification {
         val settings = cachedSettings
         val contentText = when {
@@ -249,6 +269,7 @@ class CaptureService : Service(), LifecycleOwner {
             .build()
     }
 
+    /** Refreshes the foreground notification with the latest detection or mode status. */
     private fun updateNotification(settings: AppSettings, detectionSummary: String?) {
         val notificationManager = getSystemService(NotificationManager::class.java)
         val summary = when (settings.objectDetectionMode) {
@@ -258,6 +279,7 @@ class CaptureService : Service(), LifecycleOwner {
         notificationManager.notify(NOTIF_ID, buildNotification(summary))
     }
 
+    /** Holds a partial wake lock so capture continues while the screen is off. */
     private fun acquireWakeLock() {
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Parkiroid::Capture").apply {
@@ -266,5 +288,6 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    /** This service does not support binding; returns null. */
     override fun onBind(intent: Intent?): IBinder? = null
 }

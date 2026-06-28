@@ -21,12 +21,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+/** Settings screen for server URL, API key, detection mode, and capture preferences. */
 class SettingsActivity : AppCompatActivity() {
     private val settingsStore by lazy { SettingsStore(this) }
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var selectedIntervalSec = SettingsStore.DEFAULT_INTERVAL_SEC
     private var selectedConfidenceThreshold = SettingsStore.DEFAULT_CONFIDENCE_THRESHOLD
 
+    /** Binds form controls, loads persisted settings, and handles save actions. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -54,6 +56,7 @@ class SettingsActivity : AppCompatActivity() {
             selectedIntervalSec = allowedIntervals[position].toFloat()
         }
 
+        /** Applies a normalized frame upload interval to the dropdown selection. */
         fun setSelectedIntervalSec(intervalSec: Float) {
             val normalizedSeconds = SettingsStore.normalizeFrameUploadIntervalSec(intervalSec)
             selectedIntervalSec = normalizedSeconds
@@ -61,11 +64,13 @@ class SettingsActivity : AppCompatActivity() {
             frameUploadIntervalInput.setText(intervalLabels[labelIndex], false)
         }
 
+        /** Updates the confidence threshold label to show the current percentage. */
         fun updateConfidenceThresholdLabel(threshold: Float) {
             val percent = (threshold * 100).roundToInt()
             confidenceThresholdValue.text = getString(R.string.confidence_threshold_value, percent)
         }
 
+        /** Syncs the slider and label to a normalized confidence threshold value. */
         fun setSelectedConfidenceThreshold(threshold: Float) {
             val normalized = SettingsStore.normalizeConfidenceThreshold(threshold)
             selectedConfidenceThreshold = normalized
@@ -78,6 +83,7 @@ class SettingsActivity : AppCompatActivity() {
             updateConfidenceThresholdLabel(selectedConfidenceThreshold)
         }
 
+        /** Shows server-only or on-device-only controls based on the selected detection mode. */
         fun updateModeSpecificVisibility() {
             val isServerMode = objectDetectionModeGroup.checkedRadioButtonId == R.id.objectDetectionServer
             val isOnDeviceMode = objectDetectionModeGroup.checkedRadioButtonId == R.id.objectDetectionOnDevice

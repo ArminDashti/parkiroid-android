@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore("parkiroid_settings")
 
+/** Snapshot of all user-configurable Parkiroid settings. */
 data class AppSettings(
     val serverBaseUrl: String,
     val apiKey: String,
@@ -25,6 +26,7 @@ data class AppSettings(
     val showBoundingBoxes: Boolean
 )
 
+/** Persists and exposes Parkiroid settings via DataStore preferences. */
 class SettingsStore(private val context: Context) {
     private val urlKey = stringPreferencesKey("server_url")
     private val apiKeyKey = stringPreferencesKey("api_key")
@@ -33,6 +35,7 @@ class SettingsStore(private val context: Context) {
     private val confidenceThresholdKey = floatPreferencesKey("confidence_threshold")
     private val showBoundingBoxesKey = booleanPreferencesKey("show_bounding_boxes")
 
+    /** Reactive stream of current settings with defaults applied. */
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { pref ->
         AppSettings(
             serverBaseUrl = pref[urlKey] ?: DEFAULT_SERVER_BASE_URL,
@@ -46,6 +49,7 @@ class SettingsStore(private val context: Context) {
         )
     }
 
+    /** Writes normalized settings to DataStore. */
     suspend fun save(
         serverUrl: String,
         apiKey: String,
@@ -77,12 +81,14 @@ class SettingsStore(private val context: Context) {
         const val MAX_CONFIDENCE_THRESHOLD = 0.90f
         const val CONFIDENCE_THRESHOLD_STEP = 0.05f
 
+        /** Clamps and snaps a capture interval to the allowed millisecond step grid. */
         fun normalizeIntervalMs(intervalMs: Long): Long {
             val clamped = intervalMs.coerceIn(MIN_INTERVAL_MS, MAX_INTERVAL_MS)
             val steps = ((clamped - MIN_INTERVAL_MS) / INTERVAL_STEP_MS).roundToInt()
             return MIN_INTERVAL_MS + steps * INTERVAL_STEP_MS
         }
 
+        /** Clamps and snaps a confidence threshold to the allowed step grid. */
         fun normalizeConfidenceThreshold(value: Float): Float {
             val clamped = value.coerceIn(MIN_CONFIDENCE_THRESHOLD, MAX_CONFIDENCE_THRESHOLD)
             val steps = ((clamped - MIN_CONFIDENCE_THRESHOLD) / CONFIDENCE_THRESHOLD_STEP).roundToInt()

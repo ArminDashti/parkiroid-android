@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 
+/** Main screen for camera preview, monitoring controls, and navigation to settings. */
 class MainActivity : AppCompatActivity() {
     private val settingsStore by lazy { SettingsStore(this) }
     private val permissionLauncher =
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var monitoringActive = false
     private var lastAnalysisAt = 0L
 
+    /** Wires UI actions, requests permissions, and restores monitoring on resume when active. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -96,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Re-binds the camera when returning to the app while monitoring is active. */
     override fun onResume() {
         super.onResume()
         if (monitoringActive) {
@@ -105,6 +108,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Stops monitoring and releases camera resources when the activity is destroyed. */
     override fun onDestroy() {
         if (monitoringActive) {
             stopMonitoringService()
@@ -113,6 +117,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    /** Binds preview, capture, and optional analysis use cases to the rear camera lifecycle. */
     private fun bindCamera(settings: AppSettings) {
         cameraStatus.setText(R.string.camera_opening)
         val providerFuture = ProcessCameraProvider.getInstance(this)
@@ -162,9 +167,11 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+    /** Returns true when on-device detection with bounding box overlay is enabled. */
     private fun shouldShowBoundingBoxes(settings: AppSettings): Boolean =
         settings.objectDetectionMode == ObjectDetectionMode.ON_DEVICE && settings.showBoundingBoxes
 
+    /** Lazily creates or releases the preview-only ONNX detector based on settings. */
     private fun syncPreviewDetector(settings: AppSettings) {
         if (shouldShowBoundingBoxes(settings)) {
             if (previewObjectDetector == null) {
@@ -175,6 +182,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Throttled preview-frame analysis that updates the detection overlay on the UI thread. */
     private fun analyzePreviewFrame(image: ImageProxy, settings: AppSettings) {
         val now = System.currentTimeMillis()
         if (now - lastAnalysisAt < ANALYSIS_INTERVAL_MS) {
@@ -209,6 +217,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Unbinds camera use cases and clears shared capture and overlay state. */
     private fun stopCameraPreview() {
         cameraProvider?.unbindAll()
         cameraProvider = null
@@ -218,11 +227,13 @@ class MainActivity : AppCompatActivity() {
         cameraStatus.setText(R.string.camera_idle)
     }
 
+    /** Closes and drops the preview ONNX detector instance. */
     private fun releasePreviewDetector() {
         previewObjectDetector?.close()
         previewObjectDetector = null
     }
 
+    /** Starts the foreground capture service via startForegroundService on Android O+. */
     private fun startMonitoringService() {
         val intent = Intent(this, CaptureService::class.java).apply {
             action = CaptureService.ACTION_START
@@ -234,6 +245,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Sends a stop action to the foreground capture service. */
     private fun stopMonitoringService() {
         val intent = Intent(this, CaptureService::class.java).apply {
             action = CaptureService.ACTION_STOP
@@ -241,6 +253,7 @@ class MainActivity : AppCompatActivity() {
         startService(intent)
     }
 
+    /** Prompts for any runtime permissions that are not yet granted. */
     private fun requestMissingPermissions() {
         val missing = missingPermissions()
         if (missing.isNotEmpty()) {
@@ -248,13 +261,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Returns true when all required runtime permissions are granted. */
     private fun hasRequiredPermissions(): Boolean = missingPermissions().isEmpty()
 
+    /** Lists required permissions that the app does not currently hold. */
     private fun missingPermissions(): List<String> =
         requiredPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
 
+    /** Converts an RGBA8888 [ImageProxy] plane into an ARGB bitmap. */
     private fun imageProxyToBitmap(image: ImageProxy): Bitmap {
         val plane = image.planes[0]
         val buffer: ByteBuffer = plane.buffer
@@ -269,6 +285,7 @@ class MainActivity : AppCompatActivity() {
         return Bitmap.createBitmap(pixels, image.width, image.height, Bitmap.Config.ARGB_8888)
     }
 
+    /** Rotates a bitmap by the camera-reported orientation degrees, recycling the source when needed. */
     private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
         if (rotationDegrees == 0) return bitmap
         val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }

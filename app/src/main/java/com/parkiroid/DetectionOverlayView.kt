@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.View
 import kotlin.math.max
 
+/** Draws vehicle detection bounding boxes and labels over the camera preview. */
 class DetectionOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -32,6 +33,7 @@ class DetectionOverlayView @JvmOverloads constructor(
     private var imageWidth = 0
     private var imageHeight = 0
 
+    /** Updates overlay data and triggers a redraw mapped to the analyzed frame size. */
     fun setDetections(detections: List<VehicleDetection>, imageWidth: Int, imageHeight: Int) {
         this.detections = detections
         this.imageWidth = imageWidth
@@ -39,6 +41,7 @@ class DetectionOverlayView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** Removes all boxes from the overlay. */
     fun clear() {
         detections = emptyList()
         imageWidth = 0
@@ -46,6 +49,7 @@ class DetectionOverlayView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** Renders detection boxes and confidence labels scaled to the preview view bounds. */
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (detections.isEmpty() || imageWidth <= 0 || imageHeight <= 0) return
@@ -69,6 +73,7 @@ class DetectionOverlayView @JvmOverloads constructor(
         }
     }
 
+    /** Maps image-space bounds to view coordinates using center-crop scaling. */
     private fun mapRectToView(bounds: RectF, viewWidth: Int, viewHeight: Int): RectF {
         val scale = max(viewWidth / imageWidth.toFloat(), viewHeight / imageHeight.toFloat())
         val scaledWidth = imageWidth * scale
