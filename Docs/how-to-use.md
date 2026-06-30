@@ -29,8 +29,9 @@ Tap **Settings** and enter:
 
 - **Server address** — The base URL of your Parkiroid server (example format: `http://192.168.1.10:8080` or a hosted HTTPS URL). Your administrator will provide the correct value.
 - **API key** — Must match the key configured on the server.
+- **Frame upload interval** — How often photos are sent for server-side detection (see [Settings Guide](settings-guide.md)).
 
-Review object detection options (see [Settings Guide](settings-guide.md)) and tap **Save**.
+Tap **Save**.
 
 ### 4. Position the phone
 
@@ -48,9 +49,9 @@ You may leave the app or lock the screen; monitoring continues.
 
 ### While monitoring
 
-- The notification shows current activity (capturing, upload mode, or detected objects in on-device mode).
-- If the phone detects a **bump or jolt**, you receive a separate **motion alert** notification and an extra photo is captured.
-- Battery and photos are sent to the server on the configured schedule (when a server is set).
+- The notification shows upload activity (frames sent at the configured interval).
+- If the phone detects a **bump or jolt**, you receive a separate **motion alert** notification and an extra photo is captured and uploaded.
+- Battery and photos are sent to the server on the configured schedule.
 
 ### Stop monitoring
 
@@ -64,16 +65,14 @@ Tap **Stop Monitoring** on the main screen. The background notification disappea
 | Keep the phone **plugged in** for long parking sessions | Sustains monitoring without draining the battery |
 | Confirm **server address and API key** before leaving the vehicle | Avoids silent upload failures |
 | Test **camera angle** with live preview before starting | Ensures the monitored area is actually in frame |
-| Choose **on-device vs server detection** based on your deployment | On-device works offline for detection summaries; server mode centralizes analysis |
 
 ## Troubleshooting (non-technical)
 
 | Symptom | What to check |
 |---------|----------------|
-| Monitoring won’t start | Camera permission granted? |
+| Monitoring won’t start | Camera permission granted? Server address configured? |
 | No data on server | Server address correct? Phone on same network or internet? API key matches server? |
 | Camera preview fails | Rear camera available and not in use by another app? |
 | Battery drains quickly | Increase capture interval; keep phone charging |
-| Too many or too few object alerts | Adjust confidence threshold or detection mode in Settings |
 
-For server-side issues (missing frames, auth errors), contact whoever operates the Parkiroid server.
+For server-side issues (missing frames, auth errors, detection results), contact whoever operates the Parkiroid server.

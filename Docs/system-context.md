@@ -21,8 +21,8 @@ flowchart LR
 
 | Component | Role |
 |-----------|------|
-| **Parkiroid app (this project)** | Runs on an Android phone in or near the vehicle. Captures photos, reads battery state, detects motion, optional on-device object detection. |
-| **Parkiroid server (separate project)** | Receives uploads, stores the latest frames and device metrics, can run server-side object detection, exposes APIs for retrieval and administration. |
+| **Parkiroid app (this project)** | Runs on an Android phone in or near the vehicle. Captures photos, reads battery state, detects motion, uploads frames for cloud object detection. |
+| **Parkiroid server (separate project)** | Receives uploads, stores the latest frames and device metrics, runs server-side object detection, exposes APIs for retrieval and administration. |
 
 The app is not a standalone cloud product—it is the **edge client** that feeds a server you deploy and operate (or host via a provider).
 
@@ -30,17 +30,13 @@ The app is not a standalone cloud product—it is the **edge client** that feeds
 
 ### When monitoring is active
 
-1. User starts monitoring on the phone.
+1. User starts monitoring on the phone (requires a configured server).
 2. On each interval (and on motion events):
-   - A photo may be taken.
-   - Battery level and temperature may be recorded.
-3. If a server is configured:
-   - Photos and metrics are sent securely using the API key.
-   - Each phone is identified by a stable **device ID** (derived from the phone itself) so the server can distinguish multiple vehicles or deployments.
-4. If on-device detection is enabled:
-   - The phone analyzes frames locally and shows summaries in the notification (and optionally on the preview).
-5. If server detection is enabled:
-   - Photos are uploaded for the server to analyze; results are not shown on the phone beyond upload status.
+   - A photo is taken and uploaded to the server.
+   - Battery level and temperature are recorded and sent.
+3. Photos and metrics are sent securely using the API key.
+4. Each phone is identified by a stable **device ID** (derived from the phone itself) so the server can distinguish multiple vehicles or deployments.
+5. The server performs object detection on uploaded frames; results are available via server APIs and tooling.
 
 ### Authentication
 
@@ -56,7 +52,6 @@ Each installation is treated as one **device** on the server, identified automat
 |----------|-------------|
 | **Home / lab** | Phone and server on the same Wi‑Fi; server address is a local IP. |
 | **Hosted server** | Server on the public internet; phone uses HTTPS URL; requires stable connectivity from the parking location. |
-| **On-device only (partial)** | Object detection and motion alerts work on the phone; uploads disabled if no server is set. Full remote visibility still requires the server. |
 
 ## Privacy and data considerations
 

@@ -1,0 +1,5 @@
+No need for any on-device ai models, always send to cloud
+remove all codes
+
+--------------------------------------------------------------
+Removed all on-device AI and simplified the app to cloud-only uploads. Build verified successful.

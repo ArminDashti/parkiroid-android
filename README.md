@@ -30,7 +30,7 @@ On each cycle the app:
 1. Captures a JPEG from the rear camera (quality 65, minimize-latency mode).
 2. Posts battery level (%) and battery temperature (°C).
 
-The capture interval is stored as **15 seconds** by default. In server object-detection mode, it can be configured in Settings (1–60 seconds).
+The capture interval is stored as **15 seconds** by default. It can be configured in Settings (1–60 seconds). All object detection runs on the server.
 
 ## Parkiroid API
 

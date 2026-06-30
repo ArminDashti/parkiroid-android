@@ -14,12 +14,11 @@ Snapshot of where the product stands today and what to expect when planning pilo
 ## What is included today
 
 - [x] Background vehicle monitoring with rear-camera photos
-- [x] Configurable capture / upload interval (1–60 seconds in server detection mode; 15 seconds default)
+- [x] Configurable capture / upload interval (1–60 seconds; 15 seconds default)
 - [x] Battery level and temperature reporting to server
 - [x] Motion / bump detection with alert notification and extra capture
-- [x] On-device object detection with optional live preview overlays
-- [x] Server-side object detection mode (upload frames for remote analysis)
-- [x] Dedicated Settings screen for server, detection, and interval options
+- [x] Cloud object detection (upload frames for server-side analysis)
+- [x] Dedicated Settings screen for server and interval options
 - [x] Persistent notification while monitoring
 - [x] Live camera preview on main screen during monitoring
 
@@ -56,8 +55,17 @@ Roadmap priorities should be confirmed with the product owner; the list above re
 ### Operational
 
 - Server address and API key must be **correct and kept in sync** with server configuration.
+- A valid server address is **required** to start monitoring.
+- **HTTP and HTTPS** server URLs are supported (`http://` works on Android 10+ via network security config for local/dev servers).
 - Motion detection sensitivity is tuned for **gentle bumps and parking-lot contacts**; extreme environments may need field validation.
-- On-device detection summarizes object **types** in notifications; detailed analytics depend on server mode or future tooling.
+- Object detection results are available on the server; the app shows upload status only.
+
+### Android 10 compatibility
+
+- **Minimum supported version:** Android 10 (API 29). The app is built and tested against this floor.
+- **Background camera:** Capture is bound to the foreground service, not the activity, so monitoring continues when the phone screen is off or the user switches apps.
+- **Permissions on Android 10:** Only `CAMERA` is required at runtime (no notification permission on Android 10; that applies on Android 13+).
+- **Cleartext HTTP:** Allowed so local `http://` server addresses in Settings work on older devices without TLS.
 
 ## Suggested use cases for pilots
 
@@ -65,14 +73,14 @@ Good fits for early deployment:
 
 - Single-vehicle parking monitoring with a dedicated spare phone
 - Proof-of-concept for bump detection in controlled parking environments
-- Comparing on-device vs server-side object detection for your use case
+- Server-side object detection and analytics via the Parkiroid backend
 - Battery and uptime testing over multi-hour sessions
 
 Less ideal without further product work:
 
 - Fleet-wide map tracking (no GPS in app)
 - End-customer self-service review of historical video (no local gallery; server tooling needed)
-- Unattended deployment with no server (uploads disabled; limited remote visibility)
+- Unattended deployment with no server (monitoring cannot start without a server)
 
 ## Version history note
 

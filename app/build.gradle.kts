@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("de.undercouch.download")
 }
 
 android {
@@ -35,12 +34,7 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    androidResources {
-        noCompress += listOf("tflite", "onnx")
-    }
 }
-
-apply(from = "download_models.gradle")
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
@@ -57,7 +51,4 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.21.0")
-    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }

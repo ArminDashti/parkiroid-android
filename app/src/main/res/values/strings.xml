@@ -8,31 +8,15 @@
 
     <string name="api_key">API key (matches PARKIROID_API_KEY on server)</string>
 
-    <string name="object_detection_mode">Object detection</string>
-
-    <string name="object_detection_on_device">On device (YOLO26n)</string>
-
-    <string name="object_detection_server">On server (upload frames on interval)</string>
-
     <string name="frame_upload_interval">Frame upload interval</string>
 
     <string name="frame_upload_interval_option">%1$d seconds</string>
 
-    <string name="confidence_threshold">Confidence threshold</string>
+    <string name="uploading_frames_interval">Uploading frames every %1$d s for server detection</string>
 
-    <string name="confidence_threshold_value">%1$d%%</string>
-
-    <string name="show_bounding_boxes">Show bounding boxes on camera preview</string>
-
-    <string name="object_detection_summary_none">No vehicles detected</string>
-
-    <string name="object_detection_summary_format">Detected: %1$s</string>
-
-    <string name="object_detection_server_mode_running">Uploading frames every %1$d s for server detection</string>
+    <string name="server_not_configured">Server not configured — set address in Settings</string>
 
     <string name="parkiroid_running">Parkiroid running</string>
-
-    <string name="capturing_in_background">Capturing in background</string>
 
     <string name="settings_saved">Settings saved</string>
 
@@ -54,7 +38,7 @@
 
     <string name="permissions_granted">Permissions granted. Tap Start again.</string>
 
-    <string name="server_url_recommended">Set a server address in Settings to upload photos and battery data.</string>
+    <string name="server_url_required">Set a server address in Settings before starting monitoring.</string>
 
     <string name="camera_preview">Rear camera preview</string>
 
@@ -64,7 +48,8 @@
 
     <string name="camera_ready">Camera: live preview active</string>
 
+    <string name="camera_background">Camera: capturing in background (preview paused)</string>
+
     <string name="camera_error">Camera: failed to open — check permission and rear camera</string>
 
 </resources>
-
