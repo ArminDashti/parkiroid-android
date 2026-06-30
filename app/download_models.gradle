@@ -1,0 +1,7 @@
+ext {
+    ASSET_DIR = "${projectDir}/src/main/assets"
+}
+
+tasks.named("preBuild").configure {
+    // No model download for ONNX model removed
+}

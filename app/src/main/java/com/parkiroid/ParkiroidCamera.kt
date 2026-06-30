@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference
  * CameraX binding tied to the foreground [CaptureService] lifecycle so capture continues
  * when the app is backgrounded (required on Android 9+ / API 28+).
  */
+/** Thread-safe holder for the shared [ImageCapture] instance used by the foreground service. */
 object ParkiroidCamera {
     private val captureRef = AtomicReference<ImageCapture?>(null)
     private var preview: Preview? = null
@@ -26,7 +27,9 @@ object ParkiroidCamera {
     @Volatile
     private var errorListener: ((Exception) -> Unit)? = null
 
-    val imageCapture: ImageCapture? get() = captureRef.get()
+    var imageCapture: ImageCapture?
+        get() = captureRef.get()
+        set(value) = captureRef.set(value)
 
     val isBound: Boolean get() = imageCapture != null
 
@@ -90,6 +93,7 @@ object ParkiroidCamera {
         }
     }
 
+    /** Clears the shared capture reference when the camera preview is stopped. */
     fun clear() {
         cameraProvider?.unbindAll()
         cameraProvider = null

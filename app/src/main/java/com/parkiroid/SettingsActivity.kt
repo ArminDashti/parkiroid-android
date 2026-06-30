@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 
 
 
+/** Settings screen for server URL, API key, detection mode, and capture preferences. */
 class SettingsActivity : AppCompatActivity() {
 
     private val settingsStore by lazy { SettingsStore(this) }
@@ -40,6 +41,7 @@ class SettingsActivity : AppCompatActivity() {
 
 
 
+    /** Binds form controls, loads persisted settings, and handles save actions. */
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
@@ -80,8 +82,7 @@ class SettingsActivity : AppCompatActivity() {
 
         }
 
-
-
+        /** Applies a normalized frame upload interval to the dropdown selection. */
         fun setSelectedIntervalSec(intervalSec: Float) {
 
             val normalizedSeconds = SettingsStore.normalizeFrameUploadIntervalSec(intervalSec)
@@ -94,7 +95,36 @@ class SettingsActivity : AppCompatActivity() {
 
         }
 
+        /** Updates the confidence threshold label to show the current percentage. */
+        fun updateConfidenceThresholdLabel(threshold: Float) {
+            val percent = (threshold * 100).roundToInt()
+            confidenceThresholdValue.text = getString(R.string.confidence_threshold_value, percent)
+        }
 
+        /** Syncs the slider and label to a normalized confidence threshold value. */
+        fun setSelectedConfidenceThreshold(threshold: Float) {
+            val normalized = SettingsStore.normalizeConfidenceThreshold(threshold)
+            selectedConfidenceThreshold = normalized
+            confidenceThresholdSlider.value = normalized
+            updateConfidenceThresholdLabel(normalized)
+        }
+
+        confidenceThresholdSlider.addOnChangeListener { _, value, _ ->
+            selectedConfidenceThreshold = SettingsStore.normalizeConfidenceThreshold(value)
+            updateConfidenceThresholdLabel(selectedConfidenceThreshold)
+        }
+
+        /** Shows server-only or on-device-only controls based on the selected detection mode. */
+        fun updateModeSpecificVisibility() {
+            val isServerMode = objectDetectionModeGroup.checkedRadioButtonId == R.id.objectDetectionServer
+            val isOnDeviceMode = objectDetectionModeGroup.checkedRadioButtonId == R.id.objectDetectionOnDevice
+            frameUploadIntervalLayout.visibility = if (isServerMode) View.VISIBLE else View.GONE
+            onDeviceDetectionLayout.visibility = if (isOnDeviceMode) View.VISIBLE else View.GONE
+        }
+
+        objectDetectionModeGroup.setOnCheckedChangeListener { _, _ ->
+            updateModeSpecificVisibility()
+        }
 
         scope.launch {
 

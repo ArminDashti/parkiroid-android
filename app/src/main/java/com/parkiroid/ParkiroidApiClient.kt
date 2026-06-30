@@ -10,6 +10,7 @@ import java.io.File
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
+/** HTTP client for Parkiroid server auth, frame upload, and device metrics. */
 class ParkiroidApiClient(
     private val httpClient: OkHttpClient = OkHttpClient(),
     private val deviceId: String
@@ -17,6 +18,7 @@ class ParkiroidApiClient(
     @Volatile private var bearerToken: String? = null
     @Volatile private var tokenExpiresAtEpochMillis: Long = 0L
 
+    /** Uploads a captured JPEG frame to the server after ensuring a valid bearer token. */
     fun submitFrame(baseUrl: String, apiKey: String, jpegFile: File, capturedAt: Instant): Boolean {
         if (!ensureAuthenticated(baseUrl, apiKey)) return false
         val imageBase64 = Base64.encodeToString(jpegFile.readBytes(), Base64.NO_WRAP)
@@ -33,6 +35,7 @@ class ParkiroidApiClient(
         )
     }
 
+    /** Sends current battery level and temperature readings to the server. */
     fun submitDeviceMetrics(
         baseUrl: String,
         apiKey: String,
@@ -55,6 +58,7 @@ class ParkiroidApiClient(
         )
     }
 
+    /** Posts JSON with bearer auth, retrying once after re-authentication on 401. */
     private fun postAuthenticated(baseUrl: String, apiKey: String, path: String, body: String): Boolean {
         val firstAttempt = executePost(baseUrl, path, body, bearerToken)
         if (firstAttempt != PostResult.Unauthorized) {
@@ -65,6 +69,7 @@ class ParkiroidApiClient(
         return executePost(baseUrl, path, body, bearerToken) == PostResult.Success
     }
 
+    /** Returns true when a cached token exists and has not reached its refresh window. */
     private fun ensureAuthenticated(baseUrl: String, apiKey: String): Boolean {
         val token = bearerToken
         val refreshAt = tokenExpiresAtEpochMillis - TOKEN_REFRESH_LEAD_MS
@@ -74,6 +79,7 @@ class ParkiroidApiClient(
         return authenticate(baseUrl, apiKey)
     }
 
+    /** Exchanges the API key for a bearer token via POST /auth. */
     private fun authenticate(baseUrl: String, apiKey: String): Boolean {
         val trimmedKey = apiKey.trim()
         if (trimmedKey.isEmpty()) return false
@@ -96,6 +102,7 @@ class ParkiroidApiClient(
         }
     }
 
+    /** Executes an authenticated POST and classifies the HTTP outcome. */
     private fun executePost(baseUrl: String, path: String, body: String, token: String?): PostResult {
         if (token.isNullOrBlank()) return PostResult.Unauthorized
         val request = Request.Builder()
@@ -116,6 +123,7 @@ class ParkiroidApiClient(
         }
     }
 
+    /** Parses token expiry from ISO-8601, falling back to one hour from now. */
     private fun parseExpiresAt(expiresAt: String): Long {
         if (expiresAt.isBlank()) {
             return System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1)
@@ -127,11 +135,13 @@ class ParkiroidApiClient(
         }
     }
 
+    /** Discards the cached bearer token so the next request re-authenticates. */
     private fun clearToken() {
         bearerToken = null
         tokenExpiresAtEpochMillis = 0L
     }
 
+    /** Outcome of an authenticated POST attempt. */
     private enum class PostResult {
         Success,
         Unauthorized,
