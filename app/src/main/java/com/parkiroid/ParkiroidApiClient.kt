@@ -18,6 +18,13 @@ class ParkiroidApiClient(
     @Volatile private var bearerToken: String? = null
     @Volatile private var tokenExpiresAtEpochMillis: Long = 0L
 
+    /** Verifies reachability and authentication against the configured server. */
+    fun testConnection(baseUrl: String, apiKey: String): Boolean {
+        if (!isValidBaseUrl(baseUrl)) return false
+        if (pingHealth(baseUrl)) return true
+        return authenticate(baseUrl, apiKey)
+    }
+
     /** Uploads a captured JPEG frame to the server after ensuring a valid bearer token. */
     fun submitFrame(baseUrl: String, apiKey: String, jpegFile: File, capturedAt: Instant): Boolean {
         if (!ensureAuthenticated(baseUrl, apiKey)) return false
@@ -67,6 +74,23 @@ class ParkiroidApiClient(
         clearToken()
         if (!authenticate(baseUrl, apiKey)) return false
         return executePost(baseUrl, path, body, bearerToken) == PostResult.Success
+    }
+
+    private fun isValidBaseUrl(baseUrl: String): Boolean {
+        val trimmed = baseUrl.trim()
+        return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+    }
+
+    private fun pingHealth(baseUrl: String): Boolean {
+        val request = Request.Builder()
+            .url("$baseUrl/parkiroid/api/v1/health")
+            .get()
+            .build()
+        return try {
+            httpClient.newCall(request).execute().use { it.isSuccessful }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /** Returns true when a cached token exists and has not reached its refresh window. */

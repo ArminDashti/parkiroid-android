@@ -14,12 +14,13 @@ import java.util.concurrent.atomic.AtomicReference
  * CameraX binding tied to the foreground [CaptureService] lifecycle so capture continues
  * when the app is backgrounded (required on Android 9+ / API 28+).
  */
-/** Thread-safe holder for the shared [ImageCapture] instance used by the foreground service. */
 object ParkiroidCamera {
     private val captureRef = AtomicReference<ImageCapture?>(null)
     private var preview: Preview? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var boundOwner: LifecycleOwner? = null
+    @Volatile var activeFacing: CameraFacing = CameraFacing.REAR
+        private set
 
     @Volatile
     private var readyListener: (() -> Unit)? = null
@@ -46,7 +47,13 @@ object ParkiroidCamera {
         errorListener = null
     }
 
-    fun bindForMonitoring(context: Context, lifecycleOwner: LifecycleOwner) {
+    fun bindForMonitoring(
+        context: Context,
+        lifecycleOwner: LifecycleOwner,
+        cameraFacing: CameraFacing = activeFacing,
+        jpegQuality: Int = ImageQuality.BALANCED.jpegQuality,
+    ) {
+        activeFacing = cameraFacing
         if (boundOwner === lifecycleOwner && imageCapture != null) {
             readyListener?.invoke()
             return
@@ -60,13 +67,13 @@ object ParkiroidCamera {
 
                 val previewUseCase = Preview.Builder().build()
                 val captureUseCase = ImageCapture.Builder()
-                    .setJpegQuality(80)
+                    .setJpegQuality(jpegQuality)
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
                 provider.bindToLifecycle(
                     lifecycleOwner,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    cameraFacing.toCameraSelector(),
                     previewUseCase,
                     captureUseCase,
                 )
@@ -75,10 +82,66 @@ object ParkiroidCamera {
                 captureRef.set(captureUseCase)
                 cameraProvider = provider
                 boundOwner = lifecycleOwner
+                AppLogger.info("Camera", "Bound ${cameraFacing.name.lowercase()} camera for monitoring")
                 readyListener?.invoke()
             } catch (exception: Exception) {
                 clear()
                 errorListener?.invoke(exception)
+            }
+        }, ContextCompat.getMainExecutor(context))
+    }
+
+    fun switchCamera(
+        context: Context,
+        lifecycleOwner: LifecycleOwner,
+        cameraFacing: CameraFacing,
+        jpegQuality: Int,
+    ) {
+        activeFacing = cameraFacing
+        boundOwner = null
+        bindForMonitoring(context, lifecycleOwner, cameraFacing, jpegQuality)
+    }
+
+    fun bindForPreview(
+        context: Context,
+        lifecycleOwner: LifecycleOwner,
+        previewView: PreviewView,
+        cameraFacing: CameraFacing,
+        jpegQuality: Int = ImageQuality.BALANCED.jpegQuality,
+        onReady: () -> Unit = {},
+        onError: (Exception) -> Unit = {},
+    ) {
+        activeFacing = cameraFacing
+        val providerFuture = ProcessCameraProvider.getInstance(context)
+        providerFuture.addListener({
+            try {
+                val provider = providerFuture.get()
+                provider.unbindAll()
+
+                val previewUseCase = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+                val captureUseCase = ImageCapture.Builder()
+                    .setJpegQuality(jpegQuality)
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
+
+                provider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraFacing.toCameraSelector(),
+                    previewUseCase,
+                    captureUseCase,
+                )
+
+                preview = previewUseCase
+                captureRef.set(captureUseCase)
+                cameraProvider = provider
+                boundOwner = lifecycleOwner
+                previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                onReady()
+            } catch (exception: Exception) {
+                clear()
+                onError(exception)
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -93,7 +156,6 @@ object ParkiroidCamera {
         }
     }
 
-    /** Clears the shared capture reference when the camera preview is stopped. */
     fun clear() {
         cameraProvider?.unbindAll()
         cameraProvider = null

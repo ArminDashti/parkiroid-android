@@ -1,39 +1,73 @@
 # Settings Guide
 
-All configurable options live on the **Settings** screen. Changes are saved to the phone and apply the next time monitoring runs or on the next capture cycle.
+All configurable options live on the **Settings** screen. Tap **Save** to persist changes.
 
 ## Server connection
 
 ### Server address
 
-The web address of your Parkiroid server—the place where photos and battery readings are sent.
-
-- Enter the base URL only (no path after the host).
-- Examples: `http://192.168.1.10:8080`, `https://parkiroid.example.com`
-- Trailing slashes are optional; the app normalizes the value.
-
-A valid server address is **required** before monitoring can start. Photos and battery data are uploaded to the server for cloud-side object detection.
+Base URL of your Parkiroid server (e.g. `http://192.168.1.10:8080`). No trailing path required.
 
 ### API key
 
-A shared secret that must **match the server**. Think of it as a password for the app to talk to your backend. Your server administrator provides this value. A default development key may be used in test environments only—production deployments should use a unique key.
+Shared secret matching the server configuration.
 
-## Frame upload interval
+### Connect / Disconnect
 
-How often photos are sent to the server for analysis.
+- **Connect** — saves the current form, authenticates, and updates connection status on the main screen.
+- **Disconnect** — clears the active server session.
 
-| Option | Typical use |
-|--------|-------------|
-| 1–5 seconds | High-frequency monitoring; higher battery and data use |
-| 15 seconds (default) | Balanced default for most parking scenarios |
-| 30–60 seconds | Longer sessions; lower battery and bandwidth |
+Monitoring uploads only run while **Connected**.
 
-Shorter intervals give more frequent updates but drain the phone faster.
+## AI model
 
-## Default values (reference)
+Select the on-device model identifier:
+
+- YOLOv8 Nano (default)
+- YOLOv8 Small
+- MobileNet SSD
+
+Model assets are not bundled yet; the selection is persisted for future integration.
+
+## Screenshot interval (milliseconds)
+
+Time between automatic captures. Minimum **100 ms**. Default **15000 ms** (15 seconds).
+
+Very short intervals increase battery and data use.
+
+## Object detection on device
+
+When enabled, the capture service runs local inference on each frame (stub until model files are added).
+
+## Turn on screen every N seconds
+
+Periodically wakes the display during monitoring. Set to **0** to disable.
+
+## Image quality
+
+Two independent quality settings:
+
+| Setting | Used for |
+|---------|----------|
+| **Detection image quality** | On-device object detection input |
+| **Sending image quality** | JPEG compression for server uploads |
+
+Levels: **Very Low**, **Low**, **Balanced** (default), **High**, **Original**.
+
+## Realtime FPS
+
+Target frames-per-second for live preview analysis when on-device detection is enabled. Options: 1, 2, 5, 10, 15, 24, 30. Default: **5 FPS**.
+
+## Default values
 
 | Setting | Default |
 |---------|---------|
-| Server address | Pre-filled with a development host in some builds; should be replaced for production |
-| API key | Development default; replace for production |
-| Capture / upload interval | 15 seconds |
+| Server address | `https://parkiroid.xaigrok.ir` |
+| API key | `parkiroid-dev-key` |
+| Screenshot interval | 15000 ms |
+| Object detection on device | Off |
+| Screen wake interval | 0 (off) |
+| Detection quality | Balanced |
+| Sending quality | Balanced |
+| Realtime FPS | 5 |
+| AI model | YOLOv8 Nano |

@@ -1,4 +1,0 @@
-Check codes and make sure the app is compatible with old android phones with android 10
-
---------------------------------------------------------------
-Reviewed Android 10 (API 29) compatibility: minSdk=29 confirmed, build succeeds, no APIs above 29 without guards. Fixed critical background camera issue (moved CameraX to CaptureService), cleartext HTTP config, wake lock timeout, rotation-safe monitoring state. Docs updated.

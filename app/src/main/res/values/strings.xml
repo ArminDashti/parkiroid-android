@@ -1,55 +1,54 @@
 <resources>
-
     <string name="app_name">Parkiroid</string>
 
     <string name="settings_title">Settings</string>
+    <string name="logs_title">Logs</string>
+    <string name="clear_logs">Clear logs</string>
+    <string name="logs_empty">No log entries yet.</string>
 
     <string name="server_base_url">Server address (e.g. http://192.168.1.10:8080)</string>
+    <string name="api_key">API key</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="server_connected">Connected to server</string>
+    <string name="server_connect_failed">Could not connect to server</string>
+    <string name="server_status_connected">Server: Connected</string>
+    <string name="server_status_connecting">Server: Connecting…</string>
+    <string name="server_status_failed">Server: Connection failed</string>
+    <string name="server_status_disconnected">Server: Disconnected</string>
+    <string name="server_not_connected">Server not connected — connect in Settings</string>
 
-    <string name="api_key">API key (matches PARKIROID_API_KEY on server)</string>
+    <string name="rear_camera">Rear Camera</string>
+    <string name="front_camera">Front Camera</string>
+    <string name="camera_preview">Camera preview</string>
+    <string name="camera_idle">Camera: not started</string>
+    <string name="camera_opening">Camera: opening…</string>
+    <string name="camera_active">Camera: %1$s active</string>
+    <string name="camera_ready">Camera: live preview active</string>
+    <string name="camera_background">Camera: capturing in background (preview paused)</string>
+    <string name="camera_error">Camera: failed to open — check permissions</string>
 
-    <string name="frame_upload_interval">Frame upload interval</string>
+    <string name="ai_model">AI model</string>
+    <string name="capture_interval_ms">Screenshot interval (milliseconds)</string>
+    <string name="object_detection_on_device">Object detection on device</string>
+    <string name="screen_on_interval_sec">Turn on screen every (seconds, 0 = off)</string>
+    <string name="detection_image_quality">Object detection image quality</string>
+    <string name="sending_image_quality">Sending image quality</string>
+    <string name="realtime_fps">Realtime FPS</string>
+    <string name="fps_option">%1$d FPS</string>
+    <string name="fps_idle">Realtime FPS: —</string>
+    <string name="fps_active">Realtime FPS: %1$d</string>
 
-    <string name="frame_upload_interval_option">%1$d seconds</string>
-
-    <string name="uploading_frames_interval">Uploading frames every %1$d s for server detection</string>
-
+    <string name="uploading_frames_interval">Uploading frames every %1$d s</string>
     <string name="server_not_configured">Server not configured — set address in Settings</string>
-
     <string name="parkiroid_running">Parkiroid running</string>
-
     <string name="settings_saved">Settings saved</string>
+    <string name="object_detection_summary_none">On-device detection: no objects</string>
 
     <string name="motion_detected_title">Vehicle motion detected</string>
-
     <string name="motion_detected_body">Bump detected (%.2f m/s²). Capturing photo now.</string>
 
     <string name="save">Save</string>
-
-    <string name="start">Start Monitoring</string>
-
-    <string name="stop">Stop Monitoring</string>
-
-    <string name="status_idle">Status: Idle</string>
-
-    <string name="status_running">Status: Running in background</string>
-
-    <string name="permissions_required">Camera permission is required before monitoring can start.</string>
-
-    <string name="permissions_granted">Permissions granted. Tap Start again.</string>
-
-    <string name="server_url_required">Set a server address in Settings before starting monitoring.</string>
-
-    <string name="camera_preview">Rear camera preview</string>
-
-    <string name="camera_idle">Camera: not started</string>
-
-    <string name="camera_opening">Camera: opening…</string>
-
-    <string name="camera_ready">Camera: live preview active</string>
-
-    <string name="camera_background">Camera: capturing in background (preview paused)</string>
-
-    <string name="camera_error">Camera: failed to open — check permission and rear camera</string>
-
+    <string name="permissions_required">Camera and microphone permissions are required.</string>
+    <string name="permissions_granted">Permissions granted.</string>
 </resources>
