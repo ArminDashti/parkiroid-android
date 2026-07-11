@@ -1,7 +1,6 @@
 ext {
-    ASSET_DIR = "${projectDir}/src/main/assets"
+    MODELS_DIR = "${projectDir}/src/main/assets"
 }
-
 tasks.named("preBuild").configure {
-    // No model download for ONNX model removed
+    // Models are downloaded at runtime from dogan-server; no bundled assets.
 }

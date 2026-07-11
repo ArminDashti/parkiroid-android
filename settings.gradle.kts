@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Parkiroid"
+rootProject.name = "Dogan"
 include(":app")

@@ -1,70 +1,49 @@
 # Features & Capabilities
 
-This document describes what Parkiroid can do today.
+Dogan v2.0 multi-mode vehicle monitoring and driving assistance platform.
 
-## Core monitoring
+## Operating Modes
 
-### Background operation
+| Mode | Behavior |
+|------|----------|
+| **Watchman** | Jolts, people near car, sharp sound alerts |
+| **Spotter** | Tap-to-watch parked vehicles; departure alerts |
+| **Watchman-Spotter** | Both Watchman and Spotter simultaneously |
+| **Copilot** | Driving: intrusion warnings, speed limits, speed cameras |
 
-Selecting a camera while connected to the server starts background monitoring. A persistent notification (*Parkiroid running*) confirms activity. Capture runs in a foreground service so photos and sound monitoring continue with the screen off.
+## Core Monitoring
 
-### Front and rear camera
+- Background foreground service with camera, microphone, and GPS
+- Front and rear camera capture for telemetry
+- NCNN on-device object detection (models downloaded from server)
+- Server-downloaded alert sounds with configurable volume and duration
+- WebRTC streaming: video-only, audio-only, or video+audio
 
-The main screen provides **Front Camera** and **Rear Camera** buttons to switch the active lens. Preview updates immediately; background capture follows the selected camera.
+## Telemetry
 
-### Sound monitoring
+Fixed 14-field payload uploaded via `POST /dogan/api/v1/telemetry`:
+GPS location, GPS quality, speed (km/h), network signal, network type, cabin noise RMS, battery temp/%, rear+front frames, timestamp, ambient light, server latency, IP address.
 
-While monitoring runs, the app samples the microphone and logs significant sound-level spikes to the in-app **Logs** screen.
+SQLite buffer flushed after successful upload.
 
-### Periodic photos
+## Diagnostics Screen
 
-Screenshots are taken on a configurable schedule. The interval is set in **milliseconds** on the Settings screen (minimum 100 ms; default 15,000 ms).
-
-### Battery reporting
-
-Each capture cycle sends battery level (%) and temperature (°C) to the server when connected.
-
-## Motion detection (bump alerts)
-
-Accelerometer-based bump detection triggers an extra photo and a high-priority *Vehicle motion detected* notification.
-
-## Object detection
-
-- **On device** — toggle in Settings; pipeline is wired (model assets can be added later).
-- **Server** — frames upload to the Parkiroid server when connected.
-
-## Server connection
-
-- **Connect / Disconnect** on the Settings screen
-- **Connection status** on the main screen (Connected / Connecting / Failed / Disconnected)
+Tests internet connectivity, server API (health + auth), and WebRTC session/signaling.
 
 ## Settings
 
 | Setting | Description |
 |---------|-------------|
-| Server address | Base URL of the Parkiroid server |
-| Connect / Disconnect | Test auth and manage session |
-| AI model | YOLOv8 Nano, YOLOv8 Small, or MobileNet SSD |
-| Screenshot interval | Milliseconds between captures |
-| Object detection on device | Enable/disable local inference |
-| Turn on screen every N seconds | Wakes the display periodically (0 = off) |
-| Detection image quality | Very Low / Low / Balanced / High / Original |
-| Sending image quality | JPEG quality for server uploads |
-| Realtime FPS | Target preview analysis rate (1–30 FPS) |
+| Operating mode | Watchman / Spotter / Watchman-Spotter / Copilot |
+| Server address | Base URL of the Dogan server |
+| AI model | NCNN model from server manifest |
+| Alert volume | Off / Very Low / Low / Balanced / High / Very High |
+| Alert duration | 1–5 seconds |
+| Min detection confidence | 0.10–0.95 |
+| Telemetry interval | Default 1000 ms |
+| Stream mode | Video / Audio / Video+Audio |
+| Wi-Fi only downloads | Models and sounds |
 
-## User interface
+## Cabin Noise Diagnostics
 
-| Screen | Purpose |
-|--------|---------|
-| **Main** | Server status, front/rear camera, settings, logs, live preview |
-| **Settings** | Server, AI, timing, quality, detection options |
-| **Logs** | Scrollable in-app event log |
-
-## Permissions
-
-| Permission | Why |
-|------------|-----|
-| Camera | Photos and preview (front and rear) |
-| Microphone | Sound monitoring |
-| Internet | Server uploads |
-| Notifications | Monitoring status and motion alerts |
+Ordered WAV segment archival with SQLite index and server upload for diagnosis.

@@ -1,17 +1,17 @@
 # System Context
 
-How Parkiroid fits into the overall product and what moves between the phone and the server.
+How Dogan fits into the overall product and what moves between the phone and the server.
 
 ## Components
 
 ```mermaid
 flowchart LR
     subgraph field ["In the vehicle"]
-        Phone["Android phone\n(Parkiroid app)"]
+        Phone["Android phone\n(Dogan app)"]
     end
 
     subgraph backend ["Your infrastructure"]
-        Server["Parkiroid server"]
+        Server["Dogan server"]
         Storage["Stored frames\n& metrics"]
     end
 
@@ -21,8 +21,8 @@ flowchart LR
 
 | Component | Role |
 |-----------|------|
-| **Parkiroid app (this project)** | Runs on an Android phone in or near the vehicle. Captures photos, reads battery state, detects motion, uploads frames for cloud object detection. |
-| **Parkiroid server (separate project)** | Receives uploads, stores the latest frames and device metrics, runs server-side object detection, exposes APIs for retrieval and administration. |
+| **Dogan app (this project)** | Runs on an Android phone in or near the vehicle. Captures photos, reads battery state, detects motion, uploads frames for cloud object detection. |
+| **Dogan server (separate project)** | Receives uploads, stores the latest frames and device metrics, runs server-side object detection, exposes APIs for retrieval and administration. |
 
 The app is not a standalone cloud product—it is the **edge client** that feeds a server you deploy and operate (or host via a provider).
 
@@ -65,5 +65,5 @@ Stakeholders should align server retention, access control, and privacy policies
 ## Relationship to other documentation
 
 - **This folder** — Product and operational view of the Android app.
-- **Parkiroid server documentation** — API details, administration, and storage (maintained in the server repository).
+- **Dogan server documentation** — API details, administration, and storage (maintained in the server repository).
 - **Project README** — Developer-oriented build and run instructions (not intended for managers).
