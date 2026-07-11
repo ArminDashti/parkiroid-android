@@ -5,17 +5,27 @@ plugins {
 }
 
 android {
-    namespace = "com.parkiroid"
+    namespace = "com.dogan"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.parkiroid"
+        applicationId = "com.dogan"
         minSdk = 29
         targetSdk = 33
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+            }
+        }
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildTypes {
@@ -34,8 +44,13 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
+    }
     androidResources {
-        noCompress += listOf("tflite")
+        noCompress += listOf("bin", "param")
     }
 }
 
@@ -54,6 +69,8 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("io.getstream:stream-webrtc-android:1.1.3")
 }

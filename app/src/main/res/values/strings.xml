@@ -1,8 +1,9 @@
 <resources>
-    <string name="app_name">Parkiroid</string>
+    <string name="app_name">Dogan</string>
 
     <string name="settings_title">Settings</string>
     <string name="logs_title">Logs</string>
+    <string name="diagnostics_title">Diagnostics</string>
     <string name="clear_logs">Clear logs</string>
     <string name="logs_empty">No log entries yet.</string>
 
@@ -28,27 +29,48 @@
     <string name="camera_background">Camera: capturing in background (preview paused)</string>
     <string name="camera_error">Camera: failed to open — check permissions</string>
 
-    <string name="ai_model">AI model</string>
+    <string name="operating_mode">Operating mode</string>
+    <string name="mode_active">Mode: %1$s</string>
+    <string name="mode_idle">Mode: not selected</string>
+    <string name="ai_model">AI model (NCNN)</string>
     <string name="capture_interval_ms">Screenshot interval (milliseconds)</string>
+    <string name="telemetry_interval_ms">Telemetry interval (milliseconds)</string>
     <string name="object_detection_on_device">Object detection on device</string>
     <string name="screen_on_interval_sec">Turn on screen every (seconds, 0 = off)</string>
     <string name="detection_image_quality">Object detection image quality</string>
     <string name="sending_image_quality">Sending image quality</string>
     <string name="realtime_fps">Realtime FPS</string>
+    <string name="alert_volume">Alert volume</string>
+    <string name="alert_duration">Alert duration</string>
+    <string name="min_detection_confidence">Minimum detection confidence (0.10–0.95)</string>
+    <string name="stream_mode">WebRTC stream mode</string>
+    <string name="wifi_only_downloads">Download models/sounds on Wi-Fi only</string>
     <string name="fps_option">%1$d FPS</string>
     <string name="fps_idle">Realtime FPS: —</string>
     <string name="fps_active">Realtime FPS: %1$d</string>
 
-    <string name="uploading_frames_interval">Uploading frames every %1$d s</string>
+    <string name="uploading_frames_interval">Uploading telemetry every %1$d s</string>
     <string name="server_not_configured">Server not configured — set address in Settings</string>
-    <string name="parkiroid_running">Parkiroid running</string>
+    <string name="dogan_running">Dogan running</string>
     <string name="settings_saved">Settings saved</string>
     <string name="object_detection_summary_none">On-device detection: no objects</string>
 
     <string name="motion_detected_title">Vehicle motion detected</string>
     <string name="motion_detected_body">Bump detected (%.2f m/s²). Capturing photo now.</string>
 
+    <string name="spotter_watching">Now watching: %1$s</string>
+
+    <string name="diagnostics_running">Running tests…</string>
+    <string name="diagnostics_all_passed">All tests passed</string>
+    <string name="diagnostics_some_failed">Some tests failed</string>
+    <string name="diagnostics_pass">PASS</string>
+    <string name="diagnostics_fail">FAIL</string>
+    <string name="test_internet">Test Internet</string>
+    <string name="test_server_api">Test Server API</string>
+    <string name="test_webrtc">Test Server WebRTC</string>
+    <string name="run_all_tests">Run All Tests</string>
+
     <string name="save">Save</string>
-    <string name="permissions_required">Camera and microphone permissions are required.</string>
+    <string name="permissions_required">Camera, microphone, and location permissions are required.</string>
     <string name="permissions_granted">Permissions granted.</string>
 </resources>

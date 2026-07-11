@@ -6,7 +6,7 @@ All configurable options live on the **Settings** screen. Tap **Save** to persis
 
 ### Server address
 
-Base URL of your Parkiroid server (e.g. `http://192.168.1.10:8080`). No trailing path required.
+Base URL of your Dogan server (e.g. `http://192.168.1.10:8080`). No trailing path required.
 
 ### API key
 
@@ -62,8 +62,8 @@ Target frames-per-second for live preview analysis when on-device detection is e
 
 | Setting | Default |
 |---------|---------|
-| Server address | `https://parkiroid.xaigrok.ir` |
-| API key | `parkiroid-dev-key` |
+| Server address | `https://dogan.xaigrok.ir` |
+| API key | `dogan-dev-key` |
 | Screenshot interval | 15000 ms |
 | Object detection on device | Off |
 | Screen wake interval | 0 (off) |

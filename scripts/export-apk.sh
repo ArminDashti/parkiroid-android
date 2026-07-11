@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Build and export a Parkiroid APK to the exports folder.
+Build and export a Dogan APK to the exports folder.
 
 Usage:
   ./scripts/export-apk.sh [--variant debug|release] [--output DIR] [--clean]
@@ -179,7 +179,7 @@ if [[ -f "$build_gradle" ]]; then
 fi
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
-export_name="parkiroid-${variant}-v${version_name}-${timestamp}.apk"
+export_name="dogan-${variant}-v${version_name}-${timestamp}.apk"
 destination_apk="$output_dir/$export_name"
 
 cp "$source_apk" "$destination_apk"

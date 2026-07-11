@@ -6,7 +6,7 @@ Snapshot of where the product stands today and what to expect when planning pilo
 
 | Item | Value |
 |------|--------|
-| **Product name** | Parkiroid |
+| **Product name** | Dogan |
 | **Version** | 1.0 |
 | **Platform** | Android 10 and newer |
 | **Hardware requirement** | Rear camera (required) |
@@ -34,7 +34,7 @@ These items are **out of scope** for the current app version:
 | **Remote start/stop from server** | Monitoring is controlled only from the phone |
 | **Multi-camera support** | Rear camera only |
 | **iOS version** | Android only |
-| **Built-in web dashboard** | Viewing data requires the separate Parkiroid server or custom tooling |
+| **Built-in web dashboard** | Viewing data requires the separate Dogan server or custom tooling |
 
 Roadmap priorities should be confirmed with the product owner; the list above reflects the codebase as of version 1.0.
 
@@ -73,7 +73,7 @@ Good fits for early deployment:
 
 - Single-vehicle parking monitoring with a dedicated spare phone
 - Proof-of-concept for bump detection in controlled parking environments
-- Server-side object detection and analytics via the Parkiroid backend
+- Server-side object detection and analytics via the Dogan backend
 - Battery and uptime testing over multi-hour sessions
 
 Less ideal without further product work:

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Build and export a Parkiroid APK to the exports folder.
+    Build and export a Dogan APK to the exports folder.
 
 .DESCRIPTION
     Runs Gradle assembleDebug or assembleRelease, then copies the APK to
@@ -261,7 +261,7 @@ if (Test-Path $buildGradlePath) {
 
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $variantLabel = $Variant.ToLowerInvariant()
-$exportFileName = "parkiroid-$variantLabel-v$versionName-$timestamp.apk"
+$exportFileName = "dogan-$variantLabel-v$versionName-$timestamp.apk"
 $destinationApk = Join-Path $OutputDirectory $exportFileName
 
 Copy-Item -Path $sourceApk -Destination $destinationApk -Force
