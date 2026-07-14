@@ -7,7 +7,7 @@
     <string name="clear_logs">Clear logs</string>
     <string name="logs_empty">No log entries yet.</string>
 
-    <string name="server_base_url">Server address (e.g. http://192.168.1.10:8080)</string>
+    <string name="server_base_url">Server address (e.g. http://192.168.1.10:8080/dogan)</string>
     <string name="api_key">API key</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
@@ -36,7 +36,8 @@
     <string name="capture_interval_ms">Screenshot interval (milliseconds)</string>
     <string name="telemetry_interval_ms">Telemetry interval (milliseconds)</string>
     <string name="object_detection_on_device">Object detection on device</string>
-    <string name="screen_on_interval_sec">Turn on screen every (seconds, 0 = off)</string>
+    <string name="screen_on_interval_min">Keep-alive: turn on screen every (minutes, 0 = off)</string>
+    <string name="settings_sync_interval_sec">Pull settings from server every (seconds)</string>
     <string name="detection_image_quality">Object detection image quality</string>
     <string name="sending_image_quality">Sending image quality</string>
     <string name="realtime_fps">Realtime FPS</string>

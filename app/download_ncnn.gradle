@@ -1,0 +1,48 @@
+ext {
+    ncnnVersion = "20240820"
+    ncnnDirName = "ncnn-${ncnnVersion}-android-vulkan"
+    ncnnZipName = "${ncnnDirName}.zip"
+    ncnnDownloadUrl = "https://github.com/Tencent/ncnn/releases/download/${ncnnVersion}/${ncnnZipName}"
+}
+
+tasks.register("downloadNcnn") {
+    def cppDir = file("src/main/cpp")
+    def ncnnRoot = new File(cppDir, ncnnDirName)
+    def marker = new File(ncnnRoot, "arm64-v8a/lib/cmake/ncnn/ncnnConfig.cmake")
+    def zipFile = new File(buildDir, ncnnZipName)
+
+    inputs.property("ncnnVersion", ncnnVersion)
+    outputs.file(marker)
+
+    doLast {
+        if (marker.exists()) {
+            logger.lifecycle("NCNN prebuilt already present at ${ncnnRoot}")
+            return
+        }
+
+        logger.lifecycle("Downloading NCNN ${ncnnVersion} from ${ncnnDownloadUrl}")
+        cppDir.mkdirs()
+        buildDir.mkdirs()
+
+        zipFile.withOutputStream { output ->
+            new URL(ncnnDownloadUrl).withInputStream { input ->
+                output << input
+            }
+        }
+
+        copy {
+            from zipTree(zipFile)
+            into cppDir
+        }
+
+        if (!marker.exists()) {
+            throw new GradleException("NCNN download failed; expected ${marker}")
+        }
+
+        logger.lifecycle("NCNN extracted to ${ncnnRoot}")
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("downloadNcnn")
+}

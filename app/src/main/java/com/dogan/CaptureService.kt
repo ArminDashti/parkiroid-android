@@ -48,6 +48,7 @@ class CaptureService : Service(), LifecycleOwner {
     private val deviceId by lazy { DeviceIdentity.resolveDeviceId(this) }
     private val apiClient by lazy { DoganApiClient(deviceId = deviceId) }
     private val io = Executors.newSingleThreadExecutor()
+    private val keepAliveExecutor = Executors.newSingleThreadExecutor()
     private val analysisExecutor = Executors.newSingleThreadExecutor()
 
     private val telemetryDatabase by lazy { TelemetryDatabase(this) }
@@ -69,7 +70,7 @@ class CaptureService : Service(), LifecycleOwner {
         ModeController(watchmanEngine, spotterEngine, copilotEngine)
     }
     private val telemetryUploader by lazy { TelemetryUploader(apiClient, telemetryDatabase) }
-    private val webRtcStreamer by lazy { WebRtcStreamer(this, apiClient, deviceId) }
+    private val liveKitStreamer by lazy { LiveKitStreamer(this, apiClient) }
 
     private lateinit var audioCapture: AudioCapture
     private lateinit var telemetryCollector: TelemetryCollector
@@ -133,11 +134,13 @@ class CaptureService : Service(), LifecycleOwner {
         ambientLightSensor.start()
         audioCapture.start()
         scheduleTelemetryLoop()
+        scheduleKeepAliveLoop()
         scheduleUploadLoop()
         scheduleDiagnosticUploadLoop()
 
         if (ServerConnectionManager.isConnected()) {
-            webRtcStreamer.start(settings.serverBaseUrl, settings.apiKey, settings.streamMode)
+            ServerSettingsSync.start(this)
+            liveKitStreamer.start(settings.serverBaseUrl, settings.apiKey, settings.streamMode)
         }
 
         AppLogger.info("Capture", "Monitoring started — ${settings.operatingMode.displayName}")
@@ -154,7 +157,7 @@ class CaptureService : Service(), LifecycleOwner {
         locationTracker.stop()
         ambientLightSensor.stop()
         audioCapture.stop()
-        webRtcStreamer.stop()
+        liveKitStreamer.stop()
         alertManager.release()
         DetectionTapBridge.handler = null
         ncnnObjectDetector.close()
@@ -169,6 +172,12 @@ class CaptureService : Service(), LifecycleOwner {
     private fun downloadAssets(settings: AppSettings) {
         io.execute {
             if (ServerConnectionManager.isConnected()) {
+                modelDownloadManager.fetchAndDownloadModel(
+                    settings.serverBaseUrl,
+                    settings.apiKey,
+                    settings.aiModel.toStoredValue(),
+                    settings.wifiOnlyDownloads,
+                )
                 modelDownloadManager.fetchAndDownloadAll(settings.serverBaseUrl, settings.apiKey, settings.wifiOnlyDownloads)
                 soundDownloadManager.fetchAndDownloadAll(settings.serverBaseUrl, settings.apiKey, settings.wifiOnlyDownloads)
             }
@@ -260,7 +269,6 @@ class CaptureService : Service(), LifecycleOwner {
                 try {
                     val settings = runBlocking { settingsStore.settingsFlow.first() }
                     cachedSettings = settings
-                    maybeWakeScreen(settings)
 
                     if (ServerConnectionManager.isConnected() && isValidBaseUrl(settings.serverBaseUrl)) {
                         collectAndEnqueueTelemetry(settings)
@@ -360,13 +368,36 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
+    private fun scheduleKeepAliveLoop() {
+        keepAliveExecutor.execute {
+            while (running) {
+                try {
+                    val settings = runBlocking { settingsStore.settingsFlow.first() }
+                    maybeWakeScreen(settings)
+                    val checkMs = if (settings.screenOnIntervalMin > 0) {
+                        minOf(30_000L, settings.screenOnIntervalMin * 60_000L / 2)
+                    } else {
+                        30_000L
+                    }
+                    Thread.sleep(checkMs.coerceAtLeast(5_000L))
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                } catch (_: Exception) {
+                    Thread.sleep(30_000L)
+                }
+            }
+        }
+    }
+
     private fun maybeWakeScreen(settings: AppSettings) {
-        if (settings.screenOnIntervalSec <= 0) return
+        if (settings.screenOnIntervalMin <= 0) return
         val now = System.currentTimeMillis()
-        val intervalMs = settings.screenOnIntervalSec * 1000L
+        val intervalMs = settings.screenOnIntervalMin * 60_000L
         if (now - lastScreenWakeAt < intervalMs) return
         lastScreenWakeAt = now
         ScreenWakeHelper.wakeScreen(this)
+        AppLogger.info("KeepAlive", "Screen wake pulse (${settings.screenOnIntervalMin} min interval)")
     }
 
     private fun isValidBaseUrl(baseUrl: String): Boolean {
@@ -420,8 +451,6 @@ class CaptureService : Service(), LifecycleOwner {
     }
 
     fun getLatestDetections(): List<VehicleDetection> = latestDetections.get()
-
-    fun getSpotterEngine(): SpotterEngine = spotterEngine
 
     override fun onBind(intent: Intent?): IBinder? = null
 }

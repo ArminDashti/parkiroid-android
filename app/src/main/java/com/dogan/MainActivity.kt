@@ -94,6 +94,11 @@ class MainActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ServerConnectionManager.status.collect { status ->
                     serverStatusTxt.text = connectionStatusLabel(status)
+                    when (status) {
+                        ConnectionStatus.CONNECTED -> ServerSettingsSync.start(this@MainActivity)
+                        ConnectionStatus.DISCONNECTED, ConnectionStatus.FAILED -> ServerSettingsSync.stop()
+                        else -> Unit
+                    }
                 }
             }
         }

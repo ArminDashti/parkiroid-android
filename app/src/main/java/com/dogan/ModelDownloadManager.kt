@@ -24,6 +24,8 @@ class ModelDownloadManager(
     @Volatile
     private var loadedModelId: String? = null
 
+    private val labelsByModelId = mutableMapOf<String, List<String>>()
+
     fun modelsDir(): File = File(context.filesDir, "models").also { it.mkdirs() }
 
     fun modelDir(id: String): File = File(modelsDir(), id).also { it.mkdirs() }
@@ -33,6 +35,25 @@ class ModelDownloadManager(
         return File(dir, "model.param").exists() && File(dir, "model.bin").exists()
     }
 
+    fun fetchAndDownloadModel(
+        baseUrl: String,
+        apiKey: String,
+        modelId: String,
+        wifiOnly: Boolean,
+    ): DownloadResult {
+        if (wifiOnly && !NetworkInfoCollector.isWifiConnected(context)) {
+            return DownloadResult(false, "Wi-Fi required for model download")
+        }
+        val manifest = apiClient.fetchModelsManifest(baseUrl, apiKey)
+            ?: return DownloadResult(false, "Could not fetch models manifest")
+        val entries = parseManifest(manifest)
+        cacheLabelsFromManifest(entries)
+        val entry = entries.find { it.id == modelId }
+            ?: return DownloadResult(false, "Model $modelId not in manifest")
+        val ok = downloadModel(baseUrl, apiKey, entry)
+        return DownloadResult(ok, if (ok) "Model $modelId ready" else "Failed to download $modelId")
+    }
+
     fun fetchAndDownloadAll(baseUrl: String, apiKey: String, wifiOnly: Boolean): DownloadResult {
         if (wifiOnly && !NetworkInfoCollector.isWifiConnected(context)) {
             return DownloadResult(false, "Wi-Fi required for model download")
@@ -40,21 +61,22 @@ class ModelDownloadManager(
         val manifest = apiClient.fetchModelsManifest(baseUrl, apiKey)
             ?: return DownloadResult(false, "Could not fetch models manifest")
         val entries = parseManifest(manifest)
+        cacheLabelsFromManifest(entries)
         var failed = 0
         for (entry in entries) {
-            if (!downloadModel(entry)) failed++
+            if (!downloadModel(baseUrl, apiKey, entry)) failed++
         }
         return DownloadResult(failed == 0, if (failed > 0) "$failed model(s) failed" else "All models ready")
     }
 
-    fun downloadModel(entry: ModelEntry): Boolean {
+    fun downloadModel(baseUrl: String, apiKey: String, entry: ModelEntry): Boolean {
         val dir = modelDir(entry.id)
         val paramFile = File(dir, "model.param")
         val binFile = File(dir, "model.bin")
         if (paramFile.exists() && binFile.exists()) return true
 
-        val paramBytes = apiClient.downloadFile(entry.paramUrl) ?: return false
-        val binBytes = apiClient.downloadFile(entry.binUrl) ?: return false
+        val paramBytes = apiClient.downloadFile(baseUrl, apiKey, entry.paramUrl) ?: return false
+        val binBytes = apiClient.downloadFile(baseUrl, apiKey, entry.binUrl) ?: return false
         if (!verifySha256(paramBytes, entry.paramSha256)) return false
         if (!verifySha256(binBytes, entry.binSha256)) return false
 
@@ -65,6 +87,7 @@ class ModelDownloadManager(
     }
 
     fun getLabelsForModel(aiModel: AiModel): List<String> {
+        labelsByModelId[aiModel.toStoredValue()]?.let { return it }
         return when (aiModel) {
             AiModel.YOLOV8_NANO, AiModel.YOLOV8_SMALL ->
                 listOf("person", "car", "motorcycle", "truck", "speed_camera", "speed_limit_sign")
@@ -82,9 +105,18 @@ class ModelDownloadManager(
         val ok = NcnnNative.loadModel(
             File(dir, "model.param").absolutePath,
             File(dir, "model.bin").absolutePath,
+            id,
         )
         if (ok) loadedModelId = id
         return ok
+    }
+
+    private fun cacheLabelsFromManifest(entries: List<ModelEntry>) {
+        for (entry in entries) {
+            if (entry.labels.isNotEmpty()) {
+                labelsByModelId[entry.id] = entry.labels
+            }
+        }
     }
 
     private fun parseManifest(array: JSONArray): List<ModelEntry> {

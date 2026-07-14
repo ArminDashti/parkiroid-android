@@ -26,6 +26,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var captureIntervalInput: TextInputEditText
     private lateinit var telemetryIntervalInput: TextInputEditText
     private lateinit var screenOnIntervalInput: TextInputEditText
+    private lateinit var settingsSyncIntervalInput: TextInputEditText
     private lateinit var minConfidenceInput: TextInputEditText
     private lateinit var onDeviceDetectionSwitch: SwitchMaterial
     private lateinit var wifiOnlySwitch: SwitchMaterial
@@ -49,6 +50,7 @@ class SettingsActivity : AppCompatActivity() {
         captureIntervalInput = findViewById(R.id.captureIntervalInput)
         telemetryIntervalInput = findViewById(R.id.telemetryIntervalInput)
         screenOnIntervalInput = findViewById(R.id.screenOnIntervalInput)
+        settingsSyncIntervalInput = findViewById(R.id.settingsSyncIntervalInput)
         minConfidenceInput = findViewById(R.id.minConfidenceInput)
         onDeviceDetectionSwitch = findViewById(R.id.onDeviceDetectionSwitch)
         wifiOnlySwitch = findViewById(R.id.wifiOnlySwitch)
@@ -98,6 +100,9 @@ class SettingsActivity : AppCompatActivity() {
             val draft = readDraftSettings().copy(activeCamera = current.activeCamera)
             settingsStore.save(draft)
             val connected = ServerConnectionManager.connect(this@SettingsActivity, draft)
+            if (connected) {
+                ServerSettingsSync.restart(this@SettingsActivity)
+            }
             val message = if (connected) R.string.server_connected else R.string.server_connect_failed
             Toast.makeText(this@SettingsActivity, message, Toast.LENGTH_SHORT).show()
         }
@@ -107,6 +112,9 @@ class SettingsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val current = settingsStore.settingsFlow.first()
             settingsStore.save(readDraftSettings().copy(activeCamera = current.activeCamera))
+            if (ServerConnectionManager.isConnected()) {
+                ServerSettingsSync.restart(this@SettingsActivity)
+            }
             Toast.makeText(this@SettingsActivity, R.string.settings_saved, Toast.LENGTH_SHORT).show()
             finish()
         }
@@ -117,7 +125,8 @@ class SettingsActivity : AppCompatActivity() {
         apiKeyInput.setText(settings.apiKey)
         captureIntervalInput.setText(settings.captureIntervalMs.toString())
         telemetryIntervalInput.setText(settings.telemetryIntervalMs.toString())
-        screenOnIntervalInput.setText(settings.screenOnIntervalSec.toString())
+        screenOnIntervalInput.setText(settings.screenOnIntervalMin.toString())
+        settingsSyncIntervalInput.setText(settings.settingsSyncIntervalSec.toString())
         minConfidenceInput.setText(settings.minDetectionConfidence.toString())
         onDeviceDetectionSwitch.isChecked = settings.objectDetectionOnDevice
         wifiOnlySwitch.isChecked = settings.wifiOnlyDownloads
@@ -136,8 +145,10 @@ class SettingsActivity : AppCompatActivity() {
             ?: SettingsStore.DEFAULT_INTERVAL_MS
         val telemetryMs = telemetryIntervalInput.text?.toString()?.toLongOrNull()
             ?: SettingsStore.DEFAULT_TELEMETRY_INTERVAL_MS
-        val screenOnSec = screenOnIntervalInput.text?.toString()?.toIntOrNull()
-            ?: SettingsStore.DEFAULT_SCREEN_ON_INTERVAL_SEC
+        val settingsSyncSec = settingsSyncIntervalInput.text?.toString()?.toIntOrNull()
+            ?: SettingsStore.DEFAULT_SETTINGS_SYNC_INTERVAL_SEC
+        val screenOnMin = screenOnIntervalInput.text?.toString()?.toIntOrNull()
+            ?: SettingsStore.DEFAULT_SCREEN_ON_INTERVAL_MIN
         val minConf = minConfidenceInput.text?.toString()?.toFloatOrNull()
             ?: SettingsStore.DEFAULT_MIN_CONFIDENCE
 
@@ -150,7 +161,7 @@ class SettingsActivity : AppCompatActivity() {
             operatingMode = OperatingMode.all.getOrElse(operatingModeInput.listSelection) { OperatingMode.WATCHMAN },
             aiModel = AiModel.all.getOrElse(aiModelInput.listSelection) { AiModel.YOLOV8_NANO },
             objectDetectionOnDevice = onDeviceDetectionSwitch.isChecked,
-            screenOnIntervalSec = screenOnSec,
+            screenOnIntervalMin = SettingsStore.normalizeScreenOnIntervalMin(screenOnMin),
             detectionImageQuality = ImageQuality.entries.getOrElse(detectionQualityInput.listSelection) { ImageQuality.BALANCED },
             sendingImageQuality = ImageQuality.entries.getOrElse(sendingQualityInput.listSelection) { ImageQuality.BALANCED },
             realtimeFps = SettingsStore.ALLOWED_REALTIME_FPS.getOrElse(realtimeFpsInput.listSelection) {
@@ -161,6 +172,7 @@ class SettingsActivity : AppCompatActivity() {
             minDetectionConfidence = SettingsStore.normalizeConfidence(minConf),
             streamMode = StreamMode.all.getOrElse(streamModeInput.listSelection) { StreamMode.VIDEO_AUDIO },
             wifiOnlyDownloads = wifiOnlySwitch.isChecked,
+            settingsSyncIntervalSec = SettingsStore.normalizeSettingsSyncIntervalSec(settingsSyncSec),
         )
     }
 

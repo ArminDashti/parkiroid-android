@@ -27,7 +27,7 @@ object NcnnNative {
 
     external fun nativeVersion(): String
 
-    external fun loadModel(paramPath: String, binPath: String): Boolean
+    external fun loadModel(paramPath: String, binPath: String, modelId: String): Boolean
 
     external fun detect(
         pixels: IntArray,

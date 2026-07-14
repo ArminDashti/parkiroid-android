@@ -4,6 +4,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+apply(from = "download_ncnn.gradle")
+
 android {
     namespace = "com.dogan"
     compileSdk = 35
@@ -72,5 +74,8 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation("io.getstream:stream-webrtc-android:1.1.3")
+
+    val livekitVersion = "2.27.0"
+    implementation("io.livekit:livekit-android:$livekitVersion")
+    implementation("io.livekit:livekit-android-camerax:$livekitVersion")
 }

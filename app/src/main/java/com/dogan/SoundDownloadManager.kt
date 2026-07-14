@@ -31,15 +31,15 @@ class SoundDownloadManager(
         val entries = parseManifest(manifest)
         var failed = 0
         for (entry in entries) {
-            if (!downloadSound(entry)) failed++
+            if (!downloadSound(baseUrl, apiKey, entry)) failed++
         }
         return ModelDownloadManager.DownloadResult(failed == 0, if (failed > 0) "$failed sound(s) failed" else "All sounds ready")
     }
 
-    fun downloadSound(entry: SoundEntry): Boolean {
+    fun downloadSound(baseUrl: String, apiKey: String, entry: SoundEntry): Boolean {
         val file = soundFile(entry.id, entry.format)
         if (file.exists()) return true
-        val bytes = apiClient.downloadFile(entry.url) ?: return false
+        val bytes = apiClient.downloadFile(baseUrl, apiKey, entry.url) ?: return false
         if (entry.sha256.isNotBlank()) {
             val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
             val hex = digest.joinToString("") { "%02x".format(it) }

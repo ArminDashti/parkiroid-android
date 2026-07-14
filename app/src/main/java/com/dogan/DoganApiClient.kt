@@ -35,7 +35,7 @@ class DoganApiClient(
         if (!isValidBaseUrl(baseUrl)) return null
         val start = System.currentTimeMillis()
         val request = Request.Builder()
-            .url("$baseUrl/dogan/api/v1/health")
+            .url("$baseUrl/api/v1/health")
             .get()
             .build()
         return try {
@@ -57,21 +57,32 @@ class DoganApiClient(
 
     fun submitTelemetry(baseUrl: String, apiKey: String, payload: JSONObject): Boolean {
         if (!ensureAuthenticated(baseUrl, apiKey)) return false
-        return postAuthenticated(baseUrl, apiKey, "/dogan/api/v1/telemetry", payload.toString()) == PostResult.Success
+        return postAuthenticated(baseUrl, apiKey, "/api/v1/telemetry", payload.toString()) == PostResult.Success
     }
 
     fun fetchModelsManifest(baseUrl: String, apiKey: String): JSONArray? {
         if (!ensureAuthenticated(baseUrl, apiKey)) return null
-        return getAuthenticatedJson(baseUrl, "/dogan/api/v1/models")
+        return getAuthenticatedJson(baseUrl, "/api/v1/models")
     }
 
     fun fetchSoundsManifest(baseUrl: String, apiKey: String): JSONArray? {
         if (!ensureAuthenticated(baseUrl, apiKey)) return null
-        return getAuthenticatedJson(baseUrl, "/dogan/api/v1/sounds")
+        return getAuthenticatedJson(baseUrl, "/api/v1/sounds")
     }
 
-    fun downloadFile(url: String): ByteArray? {
-        val request = Request.Builder().url(url).get().build()
+    fun fetchSettings(baseUrl: String, apiKey: String): JSONObject? {
+        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+        return getAuthenticatedObject(baseUrl, "/api/v1/settings?device_id=$deviceId")
+    }
+
+    fun downloadFile(baseUrl: String, apiKey: String, url: String): ByteArray? {
+        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+        val token = bearerToken ?: return null
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
         return try {
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
@@ -85,14 +96,40 @@ class DoganApiClient(
     fun createWebRtcSession(baseUrl: String, apiKey: String): WebRtcSessionResult? {
         if (!ensureAuthenticated(baseUrl, apiKey)) return null
         val payload = JSONObject().put("device_id", deviceId).toString()
-        val result = postAuthenticatedWithBody(baseUrl, apiKey, "/dogan/api/v1/webrtc/session", payload)
+        val result = postAuthenticatedWithBody(baseUrl, apiKey, "/api/v1/webrtc/session", payload)
         if (result.body.isNullOrBlank()) return null
         return try {
             val json = JSONObject(result.body!!)
             WebRtcSessionResult(
                 sessionId = json.optString("session_id"),
-                signalingUrl = json.optString("signaling_url"),
+                token = json.optString("token"),
+                url = json.optString("url"),
+                room = json.optString("room"),
+                identity = json.optString("identity"),
                 iceServers = json.optJSONArray("ice_servers"),
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun requestStreamingToken(baseUrl: String, apiKey: String, role: String): WebRtcSessionResult? {
+        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+        val payload = JSONObject()
+            .put("device_id", deviceId)
+            .put("role", role)
+            .toString()
+        val result = postAuthenticatedWithBody(baseUrl, apiKey, "/api/v1/streaming/token", payload)
+        if (result.body.isNullOrBlank()) return null
+        return try {
+            val json = JSONObject(result.body!!)
+            WebRtcSessionResult(
+                sessionId = json.optString("room"),
+                token = json.optString("token"),
+                url = json.optString("url"),
+                room = json.optString("room"),
+                identity = json.optString("identity"),
+                iceServers = null,
             )
         } catch (_: Exception) {
             null
@@ -117,7 +154,7 @@ class DoganApiClient(
             )
             .build()
         val request = Request.Builder()
-            .url("$baseUrl/dogan/api/v1/diagnostic-audio")
+            .url("$baseUrl/api/v1/diagnostic-audio")
             .header("Authorization", "Bearer $token")
             .post(body)
             .build()
@@ -147,6 +184,11 @@ class DoganApiClient(
     }
 
     private fun getAuthenticatedJson(baseUrl: String, path: String): JSONArray? {
+        val json = getAuthenticatedObject(baseUrl, path) ?: return null
+        return json.optJSONArray("models") ?: json.optJSONArray("sounds") ?: JSONArray(json.toString())
+    }
+
+    private fun getAuthenticatedObject(baseUrl: String, path: String): JSONObject? {
         val token = bearerToken ?: return null
         val request = Request.Builder()
             .url("$baseUrl$path")
@@ -157,8 +199,7 @@ class DoganApiClient(
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val body = response.body?.string() ?: return null
-                val json = JSONObject(body)
-                json.optJSONArray("models") ?: json.optJSONArray("sounds") ?: JSONArray(body)
+                JSONObject(body)
             }
         } catch (_: Exception) {
             null
@@ -184,7 +225,7 @@ class DoganApiClient(
         if (trimmedKey.isEmpty()) return false
         val payload = JSONObject().put("api_key", trimmedKey).toString()
         val request = Request.Builder()
-            .url("$baseUrl/dogan/api/v1/auth")
+            .url("$baseUrl/api/v1/auth")
             .post(payload.toRequestBody(JSON_MEDIA_TYPE))
             .build()
         return try {
@@ -255,7 +296,10 @@ class DoganApiClient(
 
     data class WebRtcSessionResult(
         val sessionId: String,
-        val signalingUrl: String,
+        val token: String,
+        val url: String,
+        val room: String,
+        val identity: String,
         val iceServers: JSONArray?,
     )
 

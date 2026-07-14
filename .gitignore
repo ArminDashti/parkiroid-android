@@ -34,6 +34,7 @@ Thumbs.db
 # Native build
 .externalNativeBuild/
 .cxx/
+app/src/main/cpp/ncnn-*-android-vulkan/
 
 # Profiling
 *.hprof

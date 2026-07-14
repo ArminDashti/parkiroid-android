@@ -33,6 +33,7 @@ object ServerConnectionManager {
         if (ok) {
             _status.value = ConnectionStatus.CONNECTED
             AppLogger.info("Server", "Connected")
+            ServerSettingsSync.start(context)
         } else {
             _status.value = ConnectionStatus.FAILED
             lastError = "Authentication or health check failed"
@@ -42,6 +43,7 @@ object ServerConnectionManager {
     }
 
     fun disconnect() {
+        ServerSettingsSync.stop()
         _status.value = ConnectionStatus.DISCONNECTED
         lastError = null
         AppLogger.info("Server", "Disconnected")

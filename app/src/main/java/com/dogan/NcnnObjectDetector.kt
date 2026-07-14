@@ -33,6 +33,8 @@ class NcnnObjectDetector(
         }
 
         val scaled = scaleBitmap(bitmap, 640, 640)
+        val scaleX = bitmap.width.toFloat() / scaled.width
+        val scaleY = bitmap.height.toFloat() / scaled.height
         val pixels = IntArray(scaled.width * scaled.height)
         scaled.getPixels(pixels, 0, scaled.width, 0, 0, scaled.width, scaled.height)
         val raw = try {
@@ -45,6 +47,16 @@ class NcnnObjectDetector(
         val labels = modelDownloadManager.getLabelsForModel(aiModel)
         val detections = NcnnNative.parseDetections(raw, labels)
             .filter { it.confidence >= confidenceThreshold }
+            .map { detection ->
+                detection.copy(
+                    bounds = android.graphics.RectF(
+                        detection.bounds.left * scaleX,
+                        detection.bounds.top * scaleY,
+                        detection.bounds.right * scaleX,
+                        detection.bounds.bottom * scaleY,
+                    ),
+                )
+            }
         return DetectionResult(detections)
     }
 

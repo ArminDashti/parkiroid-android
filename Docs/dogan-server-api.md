@@ -1,20 +1,27 @@
 # Dogan Server API Specification
 
-API prefix: `{base}/dogan/api/v1/`
+API prefix: `{base}/api/v1/` where `{base}` is the server root including `/dogan` (e.g. `http://192.168.1.10:8080/dogan`).
 
 ## Authentication
 
 ### POST /auth
 
-Request:
+Device (Android) request:
 ```json
 { "api_key": "dogan-dev-key" }
+```
+
+Admin request:
+```json
+{ "username": "armin", "password": "..." }
 ```
 
 Response:
 ```json
 { "token": "<bearer>", "expires_at": "2026-07-11T12:00:00Z" }
 ```
+
+Device auth accepts `dogan-dev-key` (or `DOGAN_DEVICE_API_KEY`) and returns the embedded API bearer token.
 
 ## Health
 
@@ -26,7 +33,7 @@ Returns HTTP 200 when the server is reachable. Used for latency measurement.
 
 ### GET /models
 
-Requires bearer token.
+Requires bearer token. Returns only models that have both `model.param` and `model.bin` on the server.
 
 Response:
 ```json
@@ -34,8 +41,8 @@ Response:
   "models": [
     {
       "id": "yolov8_nano",
-      "param_url": "https://.../model.param",
-      "bin_url": "https://.../model.bin",
+      "param_url": "http://host:8080/dogan/api/v1/models/yolov8_nano/param",
+      "bin_url": "http://host:8080/dogan/api/v1/models/yolov8_nano/bin",
       "param_sha256": "...",
       "bin_sha256": "...",
       "format": "ncnn",
@@ -44,6 +51,34 @@ Response:
   ]
 }
 ```
+
+Model `id` values must match Android settings: `yolov8_nano`, `yolov8_small`, `mobilenet_ssd`.
+
+### GET /models/:id/param
+
+Requires bearer token. Downloads the NCNN `.param` file for the given model id.
+
+### GET /models/:id/bin
+
+Requires bearer token. Downloads the NCNN `.bin` file for the given model id.
+
+### POST /ai-models (admin registration)
+
+Requires bearer token. Registers or updates model metadata. If `param_sha256` / `bin_sha256` are omitted, the server computes them from files under `DOGAN_MODELS_DIR/{model_name}/`.
+
+Request:
+```json
+{
+  "model_name": "yolov8_nano",
+  "param_sha256": "...",
+  "bin_sha256": "...",
+  "labels": ["person", "car"],
+  "format": "ncnn",
+  "version": "1.0.0"
+}
+```
+
+On-disk layout: `{DOGAN_MODELS_DIR}/{model_name}/model.param` and `model.bin`. Use `scripts/register-models.ps1` on the server to scan and register models.
 
 ## Sounds
 
@@ -67,6 +102,36 @@ Response:
 ```
 
 Alert types: `bump`, `person`, `sound_spike`, `vehicle_departed`, `intrusion`, `overspeed`, `speed_camera`, `generic_warning`
+
+## Settings
+
+### GET /settings?device_id={device_id}
+
+Requires bearer token. Returns the operational settings the device should apply. Omitted keys are left unchanged on the client.
+
+Response:
+```json
+{
+  "device_id": "<android_id>",
+  "operating_mode": "watchman",
+  "ai_model": "yolov8_nano",
+  "capture_interval_ms": 15000,
+  "telemetry_interval_ms": 1000,
+  "object_detection_on_device": false,
+  "screen_on_interval_min": 5,
+  "detection_image_quality": "balanced",
+  "sending_image_quality": "balanced",
+  "realtime_fps": 5,
+  "alert_volume": "balanced",
+  "alert_duration": "3",
+  "min_detection_confidence": 0.45,
+  "stream_mode": "video_audio",
+  "wifi_only_downloads": false,
+  "settings_sync_interval_sec": 60
+}
+```
+
+The client polls this endpoint every `settings_sync_interval_sec` (default 60) while connected. Server address, API key, and active camera remain device-local.
 
 ## Telemetry
 
@@ -105,9 +170,37 @@ Multipart form:
 - `metadata` — JSON with `segment_id`, `start_ms`, `end_ms`, `rms_peak`, `linked_alert_id`, `mode`, `device_id`
 - `audio` — WAV file
 
-## WebRTC
+## WebRTC (LiveKit)
+
+Streaming uses **LiveKit**. The server issues short-lived tokens; Android and web connect directly to the LiveKit server. Custom WebSocket signaling is not used.
+
+### POST /streaming/token
+
+Request:
+```json
+{
+  "device_id": "<android_id>",
+  "role": "publisher",
+  "identity": "optional-custom-identity"
+}
+```
+
+Roles: `publisher` (Android camera/audio source) or `subscriber` (web viewer).
+
+Response:
+```json
+{
+  "token": "<jwt>",
+  "url": "ws://localhost:7880",
+  "room": "device-<android_id>",
+  "identity": "publisher-<android_id>",
+  "expires_at": "2026-07-14T10:00:00Z"
+}
+```
 
 ### POST /webrtc/session
+
+Android convenience alias that always issues a **publisher** token.
 
 Request:
 ```json
@@ -117,18 +210,21 @@ Request:
 Response:
 ```json
 {
-  "session_id": "abc123",
-  "signaling_url": "wss://{host}/dogan/api/v1/webrtc/signal",
+  "session_id": "device-abc123",
+  "token": "<jwt>",
+  "url": "ws://localhost:7880",
+  "room": "device-abc123",
+  "identity": "publisher-abc123",
+  "expires_at": "2026-07-14T10:00:00Z",
   "ice_servers": [
-    { "urls": ["stun:stun.l.google.com:19302"] },
-    { "urls": ["turn:..."], "username": "...", "credential": "..." }
+    { "urls": ["stun:stun.l.google.com:19302"] }
   ]
 }
 ```
 
-### WS /webrtc/signal
+### GET /webrtc/connections?device-id=
 
-WebSocket signaling for SDP offer/answer and ICE candidates. Auth via bearer token.
+Lists recent LiveKit session records for a device.
 
 ## Deprecated Endpoints
 

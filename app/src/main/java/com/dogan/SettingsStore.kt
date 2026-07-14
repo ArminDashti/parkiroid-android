@@ -1,6 +1,7 @@
 package com.dogan
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -23,7 +24,7 @@ data class AppSettings(
     val operatingMode: OperatingMode,
     val aiModel: AiModel,
     val objectDetectionOnDevice: Boolean,
-    val screenOnIntervalSec: Int,
+    val screenOnIntervalMin: Int,
     val detectionImageQuality: ImageQuality,
     val sendingImageQuality: ImageQuality,
     val realtimeFps: Int,
@@ -32,6 +33,7 @@ data class AppSettings(
     val minDetectionConfidence: Float,
     val streamMode: StreamMode,
     val wifiOnlyDownloads: Boolean,
+    val settingsSyncIntervalSec: Int,
 ) {
     val intervalSec: Float get() = captureIntervalMs / 1000f
     val periodSec: Int get() = (captureIntervalMs / 1000L).toInt().coerceAtLeast(1)
@@ -47,7 +49,8 @@ class SettingsStore(private val context: Context) {
     private val operatingModeKey = stringPreferencesKey("operating_mode")
     private val aiModelKey = stringPreferencesKey("ai_model")
     private val onDeviceDetectionKey = booleanPreferencesKey("on_device_detection")
-    private val screenOnIntervalKey = intPreferencesKey("screen_on_interval_sec")
+    private val screenOnIntervalMinKey = intPreferencesKey("screen_on_interval_min")
+    private val legacyScreenOnIntervalSecKey = intPreferencesKey("screen_on_interval_sec")
     private val detectionQualityKey = stringPreferencesKey("detection_image_quality")
     private val sendingQualityKey = stringPreferencesKey("sending_image_quality")
     private val realtimeFpsKey = intPreferencesKey("realtime_fps")
@@ -56,6 +59,7 @@ class SettingsStore(private val context: Context) {
     private val minConfidenceKey = floatPreferencesKey("min_detection_confidence")
     private val streamModeKey = stringPreferencesKey("stream_mode")
     private val wifiOnlyKey = booleanPreferencesKey("wifi_only_downloads")
+    private val settingsSyncIntervalKey = intPreferencesKey("settings_sync_interval_sec")
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { pref ->
         AppSettings(
@@ -67,7 +71,7 @@ class SettingsStore(private val context: Context) {
             operatingMode = OperatingMode.fromStoredValue(pref[operatingModeKey]),
             aiModel = AiModel.fromStoredValue(pref[aiModelKey]),
             objectDetectionOnDevice = pref[onDeviceDetectionKey] ?: false,
-            screenOnIntervalSec = normalizeScreenOnInterval(pref[screenOnIntervalKey] ?: DEFAULT_SCREEN_ON_INTERVAL_SEC),
+            screenOnIntervalMin = readScreenOnIntervalMin(pref),
             detectionImageQuality = ImageQuality.fromStoredValue(pref[detectionQualityKey]),
             sendingImageQuality = ImageQuality.fromStoredValue(pref[sendingQualityKey]),
             realtimeFps = normalizeRealtimeFps(pref[realtimeFpsKey] ?: DEFAULT_REALTIME_FPS),
@@ -76,6 +80,9 @@ class SettingsStore(private val context: Context) {
             minDetectionConfidence = normalizeConfidence(pref[minConfidenceKey] ?: DEFAULT_MIN_CONFIDENCE),
             streamMode = StreamMode.fromStoredValue(pref[streamModeKey]),
             wifiOnlyDownloads = pref[wifiOnlyKey] ?: false,
+            settingsSyncIntervalSec = normalizeSettingsSyncIntervalSec(
+                pref[settingsSyncIntervalKey] ?: DEFAULT_SETTINGS_SYNC_INTERVAL_SEC,
+            ),
         )
     }
 
@@ -89,7 +96,8 @@ class SettingsStore(private val context: Context) {
             pref[operatingModeKey] = settings.operatingMode.toStoredValue()
             pref[aiModelKey] = settings.aiModel.toStoredValue()
             pref[onDeviceDetectionKey] = settings.objectDetectionOnDevice
-            pref[screenOnIntervalKey] = normalizeScreenOnInterval(settings.screenOnIntervalSec)
+            pref[screenOnIntervalMinKey] = normalizeScreenOnIntervalMin(settings.screenOnIntervalMin)
+            pref.remove(legacyScreenOnIntervalSecKey)
             pref[detectionQualityKey] = settings.detectionImageQuality.toStoredValue()
             pref[sendingQualityKey] = settings.sendingImageQuality.toStoredValue()
             pref[realtimeFpsKey] = normalizeRealtimeFps(settings.realtimeFps)
@@ -98,6 +106,7 @@ class SettingsStore(private val context: Context) {
             pref[minConfidenceKey] = normalizeConfidence(settings.minDetectionConfidence)
             pref[streamModeKey] = settings.streamMode.toStoredValue()
             pref[wifiOnlyKey] = settings.wifiOnlyDownloads
+            pref[settingsSyncIntervalKey] = normalizeSettingsSyncIntervalSec(settings.settingsSyncIntervalSec)
         }
     }
 
@@ -113,6 +122,15 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    private fun readScreenOnIntervalMin(pref: Preferences): Int {
+        pref[screenOnIntervalMinKey]?.let { return normalizeScreenOnIntervalMin(it) }
+        val legacySec = pref[legacyScreenOnIntervalSecKey]
+        if (legacySec != null) {
+            return normalizeScreenOnIntervalMin((legacySec + 59) / 60)
+        }
+        return DEFAULT_SCREEN_ON_INTERVAL_MIN
+    }
+
     companion object {
         const val DEFAULT_SERVER_BASE_URL = "https://dogan.xaigrok.ir"
         const val DEFAULT_API_KEY = "dogan-dev-key"
@@ -122,7 +140,11 @@ class SettingsStore(private val context: Context) {
         const val MAX_INTERVAL_MS = 3_600_000L
         const val MIN_TELEMETRY_INTERVAL_MS = 500L
         const val MAX_TELEMETRY_INTERVAL_MS = 60_000L
-        const val DEFAULT_SCREEN_ON_INTERVAL_SEC = 0
+        const val DEFAULT_SCREEN_ON_INTERVAL_MIN = 0
+        const val MAX_SCREEN_ON_INTERVAL_MIN = 60
+        const val DEFAULT_SETTINGS_SYNC_INTERVAL_SEC = 60
+        const val MIN_SETTINGS_SYNC_INTERVAL_SEC = 10
+        const val MAX_SETTINGS_SYNC_INTERVAL_SEC = 3600
         const val DEFAULT_REALTIME_FPS = 5
         const val DEFAULT_MIN_CONFIDENCE = 0.45f
         val ALLOWED_REALTIME_FPS = listOf(1, 2, 5, 10, 15, 24, 30)
@@ -133,8 +155,11 @@ class SettingsStore(private val context: Context) {
         fun normalizeTelemetryIntervalMs(intervalMs: Long): Long =
             intervalMs.coerceIn(MIN_TELEMETRY_INTERVAL_MS, MAX_TELEMETRY_INTERVAL_MS)
 
-        fun normalizeScreenOnInterval(seconds: Int): Int =
-            seconds.coerceIn(0, 3600)
+        fun normalizeScreenOnIntervalMin(minutes: Int): Int =
+            minutes.coerceIn(0, MAX_SCREEN_ON_INTERVAL_MIN)
+
+        fun normalizeSettingsSyncIntervalSec(seconds: Int): Int =
+            seconds.coerceIn(MIN_SETTINGS_SYNC_INTERVAL_SEC, MAX_SETTINGS_SYNC_INTERVAL_SEC)
 
         fun normalizeRealtimeFps(fps: Int): Int =
             ALLOWED_REALTIME_FPS.minByOrNull { kotlin.math.abs(it - fps) } ?: DEFAULT_REALTIME_FPS

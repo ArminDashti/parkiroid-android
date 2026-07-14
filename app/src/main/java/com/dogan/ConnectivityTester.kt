@@ -54,13 +54,14 @@ class ConnectivityTester(
                 detail = "Could not create WebRTC session",
             )
         }
-        val hasSignaling = session.signalingUrl.isNotBlank()
-        val hasIce = session.iceServers != null && session.iceServers.length() > 0
+        val hasToken = session.token.isNotBlank()
+        val hasUrl = session.url.isNotBlank()
+        val hasRoom = session.room.isNotBlank()
         TestResult(
             name = "Server WebRTC",
-            passed = hasSignaling && hasIce,
+            passed = hasToken && hasUrl && hasRoom,
             latencyMs = 0,
-            detail = "Session=${session.sessionId}, signaling=$hasSignaling, ICE=$hasIce",
+            detail = "Session=${session.sessionId}, token=$hasToken, url=$hasUrl, room=$hasRoom",
         )
     }
 
