@@ -50,8 +50,8 @@ Each installation is treated as one **device** on the server, identified automat
 
 | Scenario | Description |
 |----------|-------------|
-| **Home / lab** | Phone and server on the same Wi‑Fi; server address is a local IP. |
-| **Hosted server** | Server on the public internet; phone uses HTTPS URL; requires stable connectivity from the parking location. |
+| **Home / lab** | Phone and server on the same Wi‑Fi; server address is `http://<host-ip>:8090/dogan` (Docker `DOGAN_API_PORT` default). |
+| **Hosted server** | Server on the public internet; phone uses HTTPS URL with `/dogan` path (default `https://dogan.xaigrok.ir/dogan`); requires stable connectivity from the parking location. |
 
 ## Privacy and data considerations
 

@@ -7,7 +7,7 @@
     <string name="clear_logs">Clear logs</string>
     <string name="logs_empty">No log entries yet.</string>
 
-    <string name="server_base_url">Server address (e.g. http://192.168.1.10:8080/dogan)</string>
+    <string name="server_base_url">Server address (e.g. http://192.168.1.10:8090/dogan)</string>
     <string name="api_key">API key</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>

@@ -132,7 +132,7 @@ class SettingsStore(private val context: Context) {
     }
 
     companion object {
-        const val DEFAULT_SERVER_BASE_URL = "https://dogan.xaigrok.ir"
+        const val DEFAULT_SERVER_BASE_URL = "https://dogan.xaigrok.ir/dogan"
         const val DEFAULT_API_KEY = "dogan-dev-key"
         const val DEFAULT_INTERVAL_MS = 15_000L
         const val DEFAULT_TELEMETRY_INTERVAL_MS = 1_000L

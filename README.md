@@ -35,7 +35,7 @@ Open in Android Studio (Giraffe+), sync Gradle, run on a physical device with re
 
 The first Gradle build downloads Tencent NCNN prebuilt libraries (`app/download_ncnn.gradle`) and compiles the native `dogan_ncnn` JNI library. Models themselves are **not** bundled; they are fetched from the Dogan server at runtime.
 
-Server base URL must include `/dogan` (e.g. `http://192.168.1.10:8080/dogan`).
+Server base URL must include `/dogan` (e.g. `http://192.168.1.10:8090/dogan`). Docker compose publishes the API on host port **8090**.
 
 ## Permissions
 

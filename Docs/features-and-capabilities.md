@@ -35,7 +35,7 @@ Tests internet connectivity, server API (health + auth), and LiveKit WebRTC sess
 | Setting | Description |
 |---------|-------------|
 | Operating mode | Watchman / Spotter / Watchman-Spotter / Copilot |
-| Server address | Base URL of the Dogan server (include `/dogan`, e.g. `http://host:8080/dogan`) |
+| Server address | Base URL of the Dogan server (include `/dogan`, e.g. `http://host:8090/dogan`) |
 | AI model | NCNN model from server manifest |
 | Alert volume | Off / Very Low / Low / Balanced / High / Very High |
 | Alert duration | 1–5 seconds |

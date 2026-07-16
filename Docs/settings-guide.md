@@ -6,7 +6,7 @@ All configurable options live on the **Settings** screen. Tap **Save** to persis
 
 ### Server address
 
-Base URL of your Dogan server including the `/dogan` path (e.g. `http://192.168.1.10:8080/dogan`). No trailing slash.
+Base URL of your Dogan server including the `/dogan` path (e.g. `http://192.168.1.10:8090/dogan`). No trailing slash. Docker compose maps the API to host port **8090**.
 
 ### API key
 
@@ -70,7 +70,7 @@ Target frames-per-second for live preview analysis when on-device detection is e
 
 | Setting | Default |
 |---------|---------|
-| Server address | `https://dogan.xaigrok.ir` |
+| Server address | `https://dogan.xaigrok.ir/dogan` (local Docker: `http://<host-ip>:8090/dogan`) |
 | API key | `dogan-dev-key` |
 | Screenshot interval | 15000 ms |
 | Object detection on device | Off |

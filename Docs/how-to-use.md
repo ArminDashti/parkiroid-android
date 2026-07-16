@@ -27,7 +27,7 @@ When prompted, allow **Camera** access. Monitoring cannot start without it.
 
 Tap **Settings** and enter:
 
-- **Server address** — The base URL of your Dogan server (example format: `http://192.168.1.10:8080` or a hosted HTTPS URL). Your administrator will provide the correct value.
+- **Server address** — The base URL of your Dogan server including `/dogan` (example: `http://192.168.1.10:8090/dogan`, or a hosted HTTPS URL). Your administrator will provide the correct value.
 - **API key** — Must match the key configured on the server.
 - **Frame upload interval** — How often photos are sent for server-side detection (see [Settings Guide](settings-guide.md)).
 

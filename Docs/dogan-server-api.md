@@ -1,6 +1,6 @@
 # Dogan Server API Specification
 
-API prefix: `{base}/api/v1/` where `{base}` is the server root including `/dogan` (e.g. `http://192.168.1.10:8080/dogan`).
+API prefix: `{base}/api/v1/` where `{base}` is the server root including `/dogan` (e.g. `http://192.168.1.10:8090/dogan`). Docker host port is **8090** (`DOGAN_API_PORT`).
 
 ## Authentication
 
@@ -41,8 +41,8 @@ Response:
   "models": [
     {
       "id": "yolov8_nano",
-      "param_url": "http://host:8080/dogan/api/v1/models/yolov8_nano/param",
-      "bin_url": "http://host:8080/dogan/api/v1/models/yolov8_nano/bin",
+      "param_url": "http://host:8090/dogan/api/v1/models/yolov8_nano/param",
+      "bin_url": "http://host:8090/dogan/api/v1/models/yolov8_nano/bin",
       "param_sha256": "...",
       "bin_sha256": "...",
       "format": "ncnn",
@@ -228,5 +228,16 @@ Lists recent LiveKit session records for a device.
 
 ## Deprecated Endpoints
 
-- `POST /frame` — replaced by `/telemetry` (frames included in payload)
-- `POST /device-metrics` — replaced by `/telemetry` (battery fields included in payload)
+- `POST /frame` — still supported; prefer `/telemetry` (frames included in payload)
+- `POST /device-metrics` — still supported; prefer `/telemetry` (battery fields included in payload)
+
+## Server alignment
+
+This document is the Android client contract. The Go server at `/dogan/api/v1` implements these routes plus web routes (`/devices/:id/*`, `/images`, `PATCH /settings`). Default Android base URL must include the `/dogan` path prefix.
+
+Docker compose (`dogan.yml`) publishes:
+- API: host **8090** → container `8080` → clients use `http://host:8090/dogan`
+- Web UI: host **8092**; baked `VITE_API_BASE_URL` = `http://host:8090/dogan/api/v1`
+- LiveKit: **7880** (WS), **7881** (TCP), **7882** (UDP); public URL `ws://host:7880`
+- Device API key default: `dogan-dev-key`
+

@@ -12,7 +12,8 @@
 - Settings screen: server connect/disconnect, operating mode, AI model, capture/telemetry intervals, keep-alive screen wake interval (minutes), server settings sync interval (seconds), on-device detection, alert volume/duration, min confidence, stream mode
 - HTTP API prefix is `{base}/api/v1/`; client uses `POST /auth`, `POST /telemetry`, `GET /models`, `GET /sounds`, LiveKit via `POST /webrtc/session` or `POST /streaming/token`
 - Device identity is the Android ID sent as `device_id` on telemetry requests
-- Settings persist in DataStore: server URL, API key (default `dogan-dev-key`), capture period (default 15 s), telemetry period (default 1 s), screen wake interval in minutes (default 0 = off), settings sync interval (default 60 s)
+- Settings persist in DataStore: server URL (default `https://dogan.xaigrok.ir/dogan`), API key (default `dogan-dev-key`), capture period (default 15 s), telemetry period (default 1 s), screen wake interval in minutes (default 0 = off), settings sync interval (default 60 s)
+- Local Docker (`dogan.yml`): API host port **8090**, web **8092**, LiveKit **7880**; Android base URL `http://<host-ip>:8090/dogan` (matches web `http://host:8090/dogan/api/v1`)
 - While connected, `ServerSettingsSync` polls `GET /api/v1/settings` and merges server-side operational settings
 - NCNN models and alert sounds are downloaded from server at runtime (not embedded); YOLOv8 models load into Tencent NCNN via JNI (`dogan_ncnn`)
 - APK export scripts: `scripts/export-apk.ps1` (Windows) and `scripts/export-apk.sh`
