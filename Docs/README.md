@@ -12,6 +12,9 @@ This folder describes the Dogan Android app in plain language for product owners
 | [Settings Guide](settings-guide.md) | What each setting means and when to change it |
 | [System Context](system-context.md) | How the app fits with the Dogan server and what data flows where |
 | [Current Status & Limitations](current-status-and-limitations.md) | What is included, what is not, and known constraints |
+| [Description](description.md) | Tech stack and how to build/run |
+| [Endpoints](endpoints.md) | Android client API usage |
+| [Directory tree](dir-tree.md) | Repo layout overview |
 
 ## At a glance
 

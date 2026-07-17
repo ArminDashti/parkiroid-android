@@ -18,6 +18,9 @@ class AudioCapture(
     var currentRms: Double = 0.0
         private set
 
+    @Volatile
+    var soundSensitivity: SensitivityLevel = SensitivityLevel.MEDIUM
+
     fun start() {
         if (running) return
         val sampleRate = CabinNoiseArchive.SAMPLE_RATE
@@ -60,7 +63,7 @@ class AudioCapture(
                     currentRms = rms
                     cabinNoiseArchive?.writePcmSamples(buffer, read, rms)
                     val now = System.currentTimeMillis()
-                    if (rms > LOUD_THRESHOLD && now - lastSpikeAt > 5_000L) {
+                    if (rms > loudThreshold() && now - lastSpikeAt > 5_000L) {
                         lastSpikeAt = now
                         onSpike?.invoke(rms)
                         AppLogger.info("Audio", "Sound level spike detected (rms=%.2f)".format(rms))
@@ -96,7 +99,13 @@ class AudioCapture(
         return sqrt(sum / length)
     }
 
+    private fun loudThreshold(): Double = when (soundSensitivity) {
+        SensitivityLevel.LOW -> 4000.0
+        SensitivityLevel.MEDIUM -> 2500.0
+        SensitivityLevel.HIGH -> 1500.0
+    }
+
     companion object {
-        private const val LOUD_THRESHOLD = 2500.0
+        private const val DEFAULT_LOUD_THRESHOLD = 2500.0
     }
 }

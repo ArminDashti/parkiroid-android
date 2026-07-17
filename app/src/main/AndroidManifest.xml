@@ -43,6 +43,21 @@
             android:parentActivityName=".MainActivity" />
 
         <activity
+            android:name=".CameraActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".HistoryFramesActivity"
+            android:exported="false"
+            android:parentActivityName=".SettingsActivity" />
+
+        <activity
+            android:name=".HistoryFrameViewerActivity"
+            android:exported="false"
+            android:parentActivityName=".HistoryFramesActivity" />
+
+        <activity
             android:name=".LogsActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />

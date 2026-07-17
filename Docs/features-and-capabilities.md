@@ -1,51 +1,47 @@
-# Features & Capabilities
+# Features and capabilities
 
-Dogan v2.0 multi-mode vehicle monitoring and driving assistance platform.
-
-## Operating Modes
+## Operating modes
 
 | Mode | Behavior |
 |------|----------|
 | **Watchman** | Jolts, people near car, sharp sound alerts |
-| **Spotter** | Tap-to-watch parked vehicles; departure alerts |
-| **Watchman-Spotter** | Both Watchman and Spotter simultaneously |
-| **Copilot** | Driving: intrusion warnings, speed limits, speed cameras |
+| **Spotter** | Watchman + tap-to-watch vehicles; departure alerts |
+| **Copilot** | Road intrusion (when distance control on), overspeed, speed camera warnings (when alerts on) |
+| **OFF** | No capture/detection; Camera button disabled |
 
-## Core Monitoring
+## Detection
 
-- Background foreground service with camera, microphone, and GPS
-- Front and rear camera capture for telemetry
-- NCNN on-device object detection (models downloaded from server at runtime, loaded into Tencent NCNN via JNI)
-- Server-downloaded alert sounds with configurable volume and duration
-- LiveKit streaming: video-only, audio-only, or video+audio (publisher role via `/webrtc/session`)
+- YOLO26 NCNN on-device **always**; **person** and **car** only
+- Per-mode float FPS (including 0.125) and minimum confidence (default 0.7)
+- Bounding boxes on Camera eye and history frames; Spotter tap-to-watch on Camera
 
 ## Telemetry
 
-Fixed 14-field payload uploaded via `POST /api/v1/telemetry`:
-GPS location, GPS quality, speed (km/h), network signal, network type, cabin noise RMS, battery temp/%, rear+front frames, timestamp, ambient light, server latency, IP address.
+Sent every `telemetry_interval_sec` when connected:
 
-SQLite buffer flushed after successful upload.
+- GPS, speed, network, battery, cabin noise, ambient light (lux)
+- CPU and RAM usage percent
+- Camera frames only when upload policy is `auto` or server requests capture
 
-## Diagnostics Screen
+## Connectivity
 
-Tests internet connectivity, server API (health + auth), and LiveKit WebRTC session token issuance.
+- Connect/Disconnect in Connectivity settings (Connected/Disconnected button; ping + API + LiveKit status above)
+- Username/password login; same bearer token for API and LiveKit
+- Diagnostics: Internet (1.1.1.1 + 8.8.8.8), Server (8 packets), LiveKit session
+- SSL certificate warnings logged; self-signed certs accepted with warning
+- Setting changes push via `PUT /api/v1/settings` when connected
 
-## Settings
+## Media storage
 
-| Setting | Description |
-|---------|-------------|
-| Operating mode | Watchman / Spotter / Watchman-Spotter / Copilot |
-| Server address | Base URL of the Dogan server (include `/dogan`, e.g. `http://host:8090/dogan`) |
-| AI model | NCNN model from server manifest |
-| Alert volume | Off / Very Low / Low / Balanced / High / Very High |
-| Alert duration | 1–5 seconds |
-| Min detection confidence | 0.10–0.95 |
-| Telemetry interval | Default 1000 ms |
-| Screen wake interval (keep-alive) | Minutes; 0 = off |
-| Settings sync interval | Poll server settings; default 60 s |
-| Stream mode | Video / Audio / Video+Audio |
-| Wi-Fi only downloads | Models and sounds |
+- Per-mode processed images/video under `filesDir/detection-media/{mode}/`
+- Local **frame history** ring buffer (`FrameHistoryStore`) with detections JSON; tap a frame to open viewer with previous/next
+- General Settings shows usage and flush controls
 
-## Cabin Noise Diagnostics
+## UI
 
-Ordered WAV segment archival with SQLite index and server upload for diagnosis.
+- Dark Material harmony theme
+- Main: button grid hub (no preview); larger buttons (Camera 80dp, others 72dp)
+- CameraActivity: live eye/preview
+- Section settings: Connectivity / Recording / Copilot / Spotter / Watchman / General
+- HistoryFramesActivity + HistoryFrameViewerActivity from Copilot / Spotter / Watchman settings
+- AI model picker on Copilot, Spotter, and Watchman (shared `ai_model`)

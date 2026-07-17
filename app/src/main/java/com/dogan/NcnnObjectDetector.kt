@@ -1,71 +1,60 @@
 package com.dogan
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import java.io.File
 
 /**
- * NCNN-based on-device object detector. Loads models downloaded by [ModelDownloadManager].
+ * NCNN-based on-device object detector. Loads models extracted by [ModelAssetManager].
  */
 class NcnnObjectDetector(
-    private val context: Context,
-    private val modelDownloadManager: ModelDownloadManager,
+    private val modelAssetManager: ModelAssetManager,
 ) : AutoCloseable {
-    @Volatile
-    private var closed = false
     @Volatile
     private var currentModel: AiModel? = null
 
     fun detect(bitmap: Bitmap, confidenceThreshold: Float, aiModel: AiModel): DetectionResult {
-        if (closed) return DetectionResult(emptyList())
-        if (!modelDownloadManager.isModelReady(aiModel.toStoredValue())) {
+        val modelId = aiModel.toStoredValue()
+        if (!modelAssetManager.ensureModelReady(modelId)) {
+            AppLogger.error("Detection", "Model not ready: $modelId")
             return DetectionResult(emptyList())
         }
         if (currentModel != aiModel) {
-            if (!modelDownloadManager.loadModel(aiModel)) {
+            if (!modelAssetManager.loadModel(aiModel)) {
+                AppLogger.error("Detection", "Failed to load NCNN model: $modelId")
                 return DetectionResult(emptyList())
             }
             currentModel = aiModel
         }
         if (!NcnnNative.isAvailable()) {
+            AppLogger.error("Detection", "NCNN native library unavailable")
             return DetectionResult(emptyList())
         }
 
-        val scaled = scaleBitmap(bitmap, 640, 640)
-        val scaleX = bitmap.width.toFloat() / scaled.width
-        val scaleY = bitmap.height.toFloat() / scaled.height
-        val pixels = IntArray(scaled.width * scaled.height)
-        scaled.getPixels(pixels, 0, scaled.width, 0, 0, scaled.width, scaled.height)
+        // Native detector letterboxes to 640x640; pass original pixels so unletterbox is correct.
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         val raw = try {
-            NcnnNative.detect(pixels, scaled.width, scaled.height, confidenceThreshold)
-        } catch (_: UnsatisfiedLinkError) {
+            NcnnNative.detect(pixels, bitmap.width, bitmap.height, confidenceThreshold)
+        } catch (e: UnsatisfiedLinkError) {
+            AppLogger.error("Detection", "JNI detect failed: ${e.message}")
             floatArrayOf()
         }
-        if (scaled !== bitmap) scaled.recycle()
 
-        val labels = modelDownloadManager.getLabelsForModel(aiModel)
+        val labels = modelAssetManager.getLabelsForModel(aiModel)
         val detections = NcnnNative.parseDetections(raw, labels)
-            .filter { it.confidence >= confidenceThreshold }
-            .map { detection ->
-                detection.copy(
-                    bounds = android.graphics.RectF(
-                        detection.bounds.left * scaleX,
-                        detection.bounds.top * scaleY,
-                        detection.bounds.right * scaleX,
-                        detection.bounds.bottom * scaleY,
-                    ),
-                )
-            }
+            .filter { it.confidence >= confidenceThreshold && it.label in ALLOWED_LABELS }
         return DetectionResult(detections)
     }
 
     override fun close() {
-        closed = true
+        // Clear Kotlin-side model pointer; CaptureService may restart in the same process.
         currentModel = null
     }
 
     companion object {
+        private val ALLOWED_LABELS = setOf("person", "car")
+
         fun decodeJpegForDetection(jpegFile: File): Bitmap? =
             BitmapFactory.decodeFile(jpegFile.absolutePath)
 
@@ -82,11 +71,6 @@ class NcnnObjectDetector(
             if (result.detections.isEmpty()) return "On-device detection: no objects"
             val top = result.detections.take(3).joinToString { it.label }
             return "On-device detection: $top"
-        }
-
-        private fun scaleBitmap(source: Bitmap, targetW: Int, targetH: Int): Bitmap {
-            if (source.width == targetW && source.height == targetH) return source
-            return Bitmap.createScaledBitmap(source, targetW, targetH, true)
         }
     }
 }

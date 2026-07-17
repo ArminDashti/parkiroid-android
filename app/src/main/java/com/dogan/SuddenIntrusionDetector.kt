@@ -14,9 +14,10 @@ class SuddenIntrusionDetector {
         settings: AppSettings,
         onIntrusion: () -> Unit,
     ) {
+        if (!settings.copilotDistanceControlEnabled) return
+        val minConfidence = settings.confidenceForMode(OperatingMode.COPILOT)
         val targets = detections.filter {
-            it.label in setOf("person", "car", "motorcycle") &&
-                it.confidence >= settings.minDetectionConfidence
+            it.label in setOf("person", "car") && it.confidence >= minConfidence
         }
         val dangerZoneTop = imageHeight * 0.6f
 

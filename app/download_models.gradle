@@ -1,6 +1,50 @@
-ext {
-    MODELS_DIR = "${projectDir}/src/main/assets"
+// Copy YOLO26 NCNN weights from repo ai-models/ into app assets before each build.
+// Source of truth: <repo>/ai-models/ — generated assets are gitignored.
+
+def modelsSourceRoot = file("${rootProject.projectDir}/ai-models")
+def modelsAssetsRoot = file("${projectDir}/src/main/assets/models")
+
+def modelMappings = [
+    [src: "yolo26n_ncnn_model", id: "yolo26_nano"],
+    [src: "yolo26s_ncnn_model", id: "yolo26_small"],
+    [src: "yolo26m_ncnn_model", id: "yolo26_medium"],
+]
+
+tasks.register("copyEmbeddedModels") {
+    description = "Copy YOLO26 NCNN model.param/bin into assets/models/"
+    group = "build"
+
+    inputs.dir(modelsSourceRoot)
+    outputs.dir(modelsAssetsRoot)
+
+    doLast {
+        if (!modelsSourceRoot.exists()) {
+            throw new GradleException("ai-models directory not found: ${modelsSourceRoot}")
+        }
+        modelMappings.each { mapping ->
+            def srcDir = new File(modelsSourceRoot, mapping.src)
+            def paramSrc = new File(srcDir, "model.ncnn.param")
+            def binSrc = new File(srcDir, "model.ncnn.bin")
+            if (!paramSrc.exists() || !binSrc.exists()) {
+                throw new GradleException(
+                    "Missing NCNN files for ${mapping.id} under ${srcDir} " +
+                        "(expected model.ncnn.param and model.ncnn.bin)"
+                )
+            }
+            def destDir = new File(modelsAssetsRoot, mapping.id)
+            destDir.mkdirs()
+            def paramDest = new File(destDir, "model.param")
+            def binDest = new File(destDir, "model.bin")
+            paramDest.bytes = paramSrc.bytes
+            binDest.bytes = binSrc.bytes
+            logger.lifecycle(
+                "Embedded model ${mapping.id} " +
+                    "(param=${paramDest.length()} bin=${binDest.length()} bytes)"
+            )
+        }
+    }
 }
+
 tasks.named("preBuild").configure {
-    // Models are downloaded at runtime from dogan-server; no bundled assets.
+    dependsOn("copyEmbeddedModels")
 }

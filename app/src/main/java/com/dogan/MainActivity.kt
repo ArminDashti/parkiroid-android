@@ -4,24 +4,20 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
-import android.widget.Button
-import android.widget.TextView
+import android.os.Process
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.delay
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.system.exitProcess
 
-/** Main screen with mode picker, camera preview, detection overlay, and navigation. */
+/** Main hub: mode selection and navigation to camera / settings / logs. */
 class MainActivity : AppCompatActivity() {
     private val settingsStore by lazy { SettingsStore(this) }
 
@@ -32,71 +28,75 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private lateinit var previewView: PreviewView
-    private lateinit var detectionOverlay: DetectionOverlayView
-    private lateinit var serverStatusTxt: TextView
-    private lateinit var cameraStatusTxt: TextView
-    private lateinit var fpsStatusTxt: TextView
-    private lateinit var modeStatusTxt: TextView
-    private lateinit var modeInput: AutoCompleteTextView
+    private lateinit var cameraBtn: MaterialButton
+    private lateinit var modeCopilotBtn: MaterialButton
+    private lateinit var modeSpotterBtn: MaterialButton
+    private lateinit var modeWatchmanBtn: MaterialButton
+    private lateinit var modeOffBtn: MaterialButton
 
     private var monitoringActive = false
-    private var activeCamera = CameraFacing.REAR
+    private var currentMode: OperatingMode = OperatingMode.OFF
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        AppLogger.init(this)
         requestMissingPermissions()
 
-        previewView = findViewById(R.id.previewView)
-        detectionOverlay = findViewById(R.id.detectionOverlay)
-        serverStatusTxt = findViewById(R.id.serverStatusTxt)
-        cameraStatusTxt = findViewById(R.id.cameraStatusTxt)
-        fpsStatusTxt = findViewById(R.id.fpsStatusTxt)
-        modeStatusTxt = findViewById(R.id.modeStatusTxt)
-        modeInput = findViewById(R.id.modeInput)
+        cameraBtn = findViewById(R.id.cameraBtn)
+        modeCopilotBtn = findViewById(R.id.modeCopilotBtn)
+        modeSpotterBtn = findViewById(R.id.modeSpotterBtn)
+        modeWatchmanBtn = findViewById(R.id.modeWatchmanBtn)
+        modeOffBtn = findViewById(R.id.modeOffBtn)
 
-        setupModeDropdown()
-
-        findViewById<Button>(R.id.settingsBtn).setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
+        cameraBtn.setOnClickListener {
+            if (currentMode == OperatingMode.OFF) {
+                Toast.makeText(this, R.string.camera_disabled_off, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            startActivity(Intent(this, CameraActivity::class.java))
         }
-        findViewById<Button>(R.id.logsBtn).setOnClickListener {
+        modeCopilotBtn.setOnClickListener { selectMode(OperatingMode.COPILOT) }
+        modeSpotterBtn.setOnClickListener { selectMode(OperatingMode.SPOTTER) }
+        modeWatchmanBtn.setOnClickListener { selectMode(OperatingMode.WATCHER) }
+        modeOffBtn.setOnClickListener { selectMode(OperatingMode.OFF) }
+
+        findViewById<MaterialButton>(R.id.copilotSettingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_COPILOT)
+        }
+        findViewById<MaterialButton>(R.id.recordingSettingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_RECORDING)
+        }
+        findViewById<MaterialButton>(R.id.spotterSettingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_SPOTTER)
+        }
+        findViewById<MaterialButton>(R.id.watchmanSettingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_WATCHMAN)
+        }
+        findViewById<MaterialButton>(R.id.connectivityBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_CONNECTIVITY)
+        }
+        findViewById<MaterialButton>(R.id.settingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_GENERAL)
+        }
+        findViewById<MaterialButton>(R.id.logsBtn).setOnClickListener {
             startActivity(Intent(this, LogsActivity::class.java))
         }
-        findViewById<Button>(R.id.diagnosticsBtn).setOnClickListener {
-            startActivity(Intent(this, DiagnosticsActivity::class.java))
-        }
-        findViewById<Button>(R.id.rearCameraBtn).setOnClickListener {
-            selectCamera(CameraFacing.REAR)
-        }
-        findViewById<Button>(R.id.frontCameraBtn).setOnClickListener {
-            selectCamera(CameraFacing.FRONT)
-        }
-
-        detectionOverlay.onDetectionTapped = { detection, imageWidth, imageHeight ->
-            DetectionTapBridge.onTapped(detection.label, detection.bounds, imageWidth, imageHeight)
-            lifecycleScope.launch {
-                val settings = settingsStore.settingsFlow.first()
-                if (settings.operatingMode == OperatingMode.SPOTTER ||
-                    settings.operatingMode == OperatingMode.WATCHMAN_SPOTTER
-                ) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.spotter_watching, detection.label),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
-        }
+        findViewById<MaterialButton>(R.id.exitBtn).setOnClickListener { exitApp() }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ServerConnectionManager.status.collect { status ->
-                    serverStatusTxt.text = connectionStatusLabel(status)
                     when (status) {
-                        ConnectionStatus.CONNECTED -> ServerSettingsSync.start(this@MainActivity)
-                        ConnectionStatus.DISCONNECTED, ConnectionStatus.FAILED -> ServerSettingsSync.stop()
+                        ConnectionStatus.CONNECTED -> {
+                            ServerSettingsSync.start(this@MainActivity)
+                            if (currentMode != OperatingMode.OFF) {
+                                ensureMonitoringStarted()
+                            }
+                        }
+                        ConnectionStatus.DISCONNECTED, ConnectionStatus.FAILED -> {
+                            ServerSettingsSync.stop()
+                        }
                         else -> Unit
                     }
                 }
@@ -104,176 +104,106 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            val settings = settingsStore.settingsFlow.first()
-            activeCamera = settings.activeCamera
-            updateFpsLabel(settings.realtimeFps)
-            updateModeLabel(settings.operatingMode)
-            setDropdownSelection(modeInput, settings.operatingMode.displayName)
-            detectionOverlay.setTapToWatchEnabled(
-                settings.operatingMode == OperatingMode.SPOTTER ||
-                    settings.operatingMode == OperatingMode.WATCHMAN_SPOTTER,
-            )
-        }
-
-        lifecycleScope.launch {
-            while (isActive) {
-                if (monitoringActive) {
-                    // Detection overlay updates via broadcast from service would be ideal;
-                    // for now refresh from DoganCamera analysis in service logs.
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settingsStore.settingsFlow.collect { settings ->
+                    currentMode = settings.operatingMode
+                    updateModeButtons(settings.operatingMode)
+                    updateCameraEnabled(settings.operatingMode)
+                    if (settings.operatingMode == OperatingMode.OFF) {
+                        stopMonitoringIfNeeded()
+                    } else if (ServerConnectionManager.isConnected() || settings.objectDetectionOnDevice) {
+                        ensureMonitoringStarted()
+                    }
                 }
-                delay(500)
             }
         }
-
-        registerCameraStatusListener()
-        selectCamera(CameraFacing.REAR)
     }
 
-    private fun setupModeDropdown() {
-        val labels = OperatingMode.all.map { it.displayName }
-        modeInput.setAdapter(
-            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, labels),
-        )
-        modeInput.setOnItemClickListener { _, _, position, _ ->
-            val mode = OperatingMode.all[position]
-            lifecycleScope.launch {
-                settingsStore.updateOperatingMode(mode)
-                updateModeLabel(mode)
-                detectionOverlay.setTapToWatchEnabled(
-                    mode == OperatingMode.SPOTTER || mode == OperatingMode.WATCHMAN_SPOTTER,
-                )
-                AppLogger.info("Mode", "Selected ${mode.displayName}")
+    private fun selectMode(mode: OperatingMode) {
+        lifecycleScope.launch {
+            SettingsPublisher.pushOperatingMode(this@MainActivity, mode)
+            currentMode = mode
+            updateModeButtons(mode)
+            updateCameraEnabled(mode)
+            if (mode == OperatingMode.OFF) {
+                stopMonitoringIfNeeded()
+            } else {
+                ensureMonitoringStarted()
             }
+        }
+    }
+
+    private fun updateModeButtons(mode: OperatingMode) {
+        styleModeButton(modeCopilotBtn, mode == OperatingMode.COPILOT)
+        styleModeButton(modeSpotterBtn, mode == OperatingMode.SPOTTER)
+        styleModeButton(modeWatchmanBtn, mode == OperatingMode.WATCHER)
+        styleModeButton(modeOffBtn, mode == OperatingMode.OFF)
+    }
+
+    private fun styleModeButton(button: MaterialButton, selected: Boolean) {
+        button.setBackgroundColor(
+            ContextCompat.getColor(
+                this,
+                if (selected) R.color.dogan_mode_selected else R.color.dogan_mode_unselected,
+            ),
+        )
+    }
+
+    private fun updateCameraEnabled(mode: OperatingMode) {
+        val enabled = mode != OperatingMode.OFF
+        cameraBtn.isEnabled = enabled
+        cameraBtn.alpha = if (enabled) 1f else 0.45f
+    }
+
+    private fun openSettings(section: String) {
+        startActivity(
+            Intent(this, SettingsActivity::class.java).putExtra(SettingsActivity.EXTRA_SECTION, section),
+        )
+    }
+
+    private fun exitApp() {
+        lifecycleScope.launch {
+            if (ServerConnectionManager.isConnected()) {
+                ServerConnectionManager.disconnect()
+            }
+            stopMonitoringIfNeeded()
+            finishAffinity()
+            Process.killProcess(Process.myPid())
+            exitProcess(0)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (monitoringActive) {
-            registerCameraStatusListener()
-            DoganCamera.attachPreviewSurface(previewView)
-            cameraStatusTxt.setText(R.string.camera_ready)
-        } else {
-            lifecycleScope.launch {
-                val settings = settingsStore.settingsFlow.first()
-                bindPreview(settings)
-            }
-        }
-    }
-
-    override fun onPause() {
-        if (monitoringActive) {
-            DoganCamera.detachPreviewSurface()
-            cameraStatusTxt.setText(R.string.camera_background)
-        }
-        super.onPause()
-    }
-
-    override fun onDestroy() {
-        if (!monitoringActive) {
-            DoganCamera.clear()
-        }
-        DoganCamera.clearStatusListener()
-        super.onDestroy()
-    }
-
-    private fun selectCamera(facing: CameraFacing) {
         lifecycleScope.launch {
-            if (!hasRequiredPermissions()) {
-                requestMissingPermissions()
-                Toast.makeText(this@MainActivity, R.string.permissions_required, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-
             val settings = settingsStore.settingsFlow.first()
-            activeCamera = facing
-            settingsStore.updateActiveCamera(facing)
-            AppLogger.info("Camera", "Selected ${facing.name.lowercase()} camera")
-
-            if (monitoringActive) {
-                val intent = Intent(this@MainActivity, CaptureService::class.java).apply {
-                    action = CaptureService.ACTION_SWITCH_CAMERA
-                    putExtra(CaptureService.EXTRA_CAMERA_FACING, facing.toStoredValue())
-                }
-                startService(intent)
-                DoganCamera.attachPreviewSurface(previewView)
-                cameraStatusTxt.text = getString(R.string.camera_active, facingLabel(facing))
-            } else {
-                bindPreview(settings.copy(activeCamera = facing))
-            }
-
-            if (ServerConnectionManager.isConnected() && !monitoringActive) {
-                startMonitoringService()
-                monitoringActive = true
+            currentMode = settings.operatingMode
+            updateModeButtons(settings.operatingMode)
+            updateCameraEnabled(settings.operatingMode)
+            if (settings.operatingMode != OperatingMode.OFF) {
+                ensureMonitoringStarted()
             }
         }
     }
 
-    private fun bindPreview(settings: AppSettings) {
-        cameraStatusTxt.setText(R.string.camera_opening)
-        DoganCamera.bindForPreview(
-            context = this,
-            lifecycleOwner = this,
-            previewView = previewView,
-            cameraFacing = settings.activeCamera,
-            jpegQuality = settings.sendingImageQuality.jpegQuality,
-            onReady = {
-                cameraStatusTxt.text = getString(R.string.camera_active, facingLabel(settings.activeCamera))
-            },
-            onError = {
-                cameraStatusTxt.setText(R.string.camera_error)
-                Toast.makeText(this, R.string.camera_error, Toast.LENGTH_LONG).show()
-            },
-        )
-    }
-
-    private fun registerCameraStatusListener() {
-        DoganCamera.setStatusListener(
-            onReady = {
-                runOnUiThread {
-                    DoganCamera.attachPreviewSurface(previewView)
-                    cameraStatusTxt.text = getString(R.string.camera_active, facingLabel(activeCamera))
-                }
-            },
-            onError = {
-                runOnUiThread {
-                    cameraStatusTxt.setText(R.string.camera_error)
-                }
-            },
-        )
-    }
-
-    private fun startMonitoringService() {
+    private fun ensureMonitoringStarted() {
+        if (monitoringActive) return
+        if (!hasRequiredPermissions()) return
+        if (currentMode == OperatingMode.OFF) return
         val intent = Intent(this, CaptureService::class.java).apply {
             action = CaptureService.ACTION_START
         }
         startForegroundService(intent)
         monitoringActive = true
-        AppLogger.info("Capture", "Background monitoring started")
     }
 
-    private fun updateModeLabel(mode: OperatingMode) {
-        modeStatusTxt.text = getString(R.string.mode_active, mode.displayName)
-    }
-
-    private fun connectionStatusLabel(status: ConnectionStatus): String = when (status) {
-        ConnectionStatus.CONNECTED -> getString(R.string.server_status_connected)
-        ConnectionStatus.CONNECTING -> getString(R.string.server_status_connecting)
-        ConnectionStatus.FAILED -> getString(R.string.server_status_failed)
-        ConnectionStatus.DISCONNECTED -> getString(R.string.server_status_disconnected)
-    }
-
-    private fun facingLabel(facing: CameraFacing): String = when (facing) {
-        CameraFacing.REAR -> getString(R.string.rear_camera)
-        CameraFacing.FRONT -> getString(R.string.front_camera)
-    }
-
-    private fun updateFpsLabel(fps: Int) {
-        fpsStatusTxt.text = getString(R.string.fps_active, fps)
-    }
-
-    private fun setDropdownSelection(view: AutoCompleteTextView, label: String) {
-        view.setText(label, false)
+    private fun stopMonitoringIfNeeded() {
+        if (!monitoringActive) return
+        val intent = Intent(this, CaptureService::class.java).apply {
+            action = CaptureService.ACTION_STOP
+        }
+        startService(intent)
+        monitoringActive = false
     }
 
     private fun requestMissingPermissions() {

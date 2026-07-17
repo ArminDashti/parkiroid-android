@@ -12,6 +12,9 @@ class VehicleMotionDetector(
     private val onBumpDetected: (peakAccelerationMps2: Float) -> Unit
 ) : SensorEventListener {
 
+    @Volatile
+    var joltSensitivity: SensitivityLevel = SensitivityLevel.MEDIUM
+
     private var usesLinearAcceleration = true
     private val gravityEstimate = FloatArray(3)
     private var baselineMagnitude = 0f
@@ -66,9 +69,10 @@ class VehicleMotionDetector(
         val nowMs = System.currentTimeMillis()
         if (nowMs - lastTriggerAtMs < COOLDOWN_MS) return
 
-        val isBump = magnitude >= PEAK_ACCELERATION_THRESHOLD_MPS2 ||
-            deviation >= DEVIATION_THRESHOLD_MPS2 ||
-            jerk >= JERK_SENSITIVITY_MPS3
+        val scale = sensitivityScale(joltSensitivity)
+        val isBump = magnitude >= PEAK_ACCELERATION_THRESHOLD_MPS2 * scale ||
+            deviation >= DEVIATION_THRESHOLD_MPS2 * scale ||
+            jerk >= JERK_SENSITIVITY_MPS3 * scale
 
         if (!isBump) return
 
@@ -101,6 +105,12 @@ class VehicleMotionDetector(
 
     /** No-op; sensor accuracy changes do not affect bump detection. */
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+
+    private fun sensitivityScale(level: SensitivityLevel): Float = when (level) {
+        SensitivityLevel.LOW -> 1.8f
+        SensitivityLevel.MEDIUM -> 1.0f
+        SensitivityLevel.HIGH -> 0.6f
+    }
 
     companion object {
         const val COOLDOWN_MS = 2_000L

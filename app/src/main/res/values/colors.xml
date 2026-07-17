@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#1565C0</color>
+
+    <color name="dogan_surface">#121212</color>
+    <color name="dogan_surface_variant">#1E1E1E</color>
+    <color name="dogan_surface_elevated">#2C2C2C</color>
+    <color name="dogan_primary">#2E7D32</color>
+    <color name="dogan_primary_dark">#1B5E20</color>
+    <color name="dogan_primary_light">#4CAF50</color>
+    <color name="dogan_on_primary">#FFFFFF</color>
+    <color name="dogan_on_surface">#FFFFFF</color>
+    <color name="dogan_on_surface_secondary">#B3FFFFFF</color>
+    <color name="dogan_outline">#3D3D3D</color>
+    <color name="dogan_danger">#C62828</color>
+    <color name="dogan_warning">#F9A825</color>
+    <color name="dogan_mode_selected">#2E7D32</color>
+    <color name="dogan_mode_unselected">#2C2C2C</color>
 </resources>

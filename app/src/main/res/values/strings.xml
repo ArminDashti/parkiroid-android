@@ -1,63 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Dogan</string>
 
     <string name="settings_title">Settings</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_watchman">Watchman</string>
+    <string name="settings_section_spotter">Spotter</string>
+    <string name="settings_section_copilot">Copilot</string>
+    <string name="settings_section_recording">Recording</string>
+    <string name="settings_section_connectivity">Connectivity</string>
+    <string name="settings_section_storage">Storage</string>
     <string name="logs_title">Logs</string>
     <string name="diagnostics_title">Diagnostics</string>
     <string name="clear_logs">Clear logs</string>
     <string name="logs_empty">No log entries yet.</string>
+    <string name="exit_app">Exit</string>
+    <string name="camera_button">Camera</string>
+    <string name="camera_disabled_off">Camera is disabled while mode is OFF</string>
 
-    <string name="server_base_url">Server address (e.g. http://192.168.1.10:8090/dogan)</string>
-    <string name="api_key">API key</string>
-    <string name="connect">Connect</string>
-    <string name="disconnect">Disconnect</string>
+    <string name="mode_copilot">Copilot</string>
+    <string name="mode_spotter">Spotter</string>
+    <string name="mode_watchman">Watchman</string>
+    <string name="mode_off">OFF</string>
+
+    <string name="api_endpoint">API endpoint</string>
+    <string name="api_port">API port</string>
+    <string name="stream_endpoint">Stream endpoint</string>
+    <string name="stream_port">Stream port</string>
+    <string name="default_mode">Default mode</string>
+    <string name="active_camera">Camera</string>
+    <string name="camera_rear">Rear</string>
+    <string name="camera_front">Front</string>
+    <string name="camera_both">Both</string>
+    <string name="keep_alive_interval">Keep alive interval (minutes, 0 = off)</string>
+    <string name="telemetry_interval_sec">Send telemetry every (seconds)</string>
+    <string name="telemetry_retention_hours">Keep telemetry data (hours)</string>
+    <string name="settings_sync_interval">Settings sync interval (seconds)</string>
+    <string name="jolt_sensitivity">Jolt sensitivity</string>
+    <string name="sound_sensitivity">Sound sensitivity</string>
+    <string name="log_retention_days">Keep logs (days)</string>
+
+    <string name="fps_label">FPS</string>
+    <string name="fps_increase">Increase FPS</string>
+    <string name="fps_decrease">Decrease FPS</string>
+    <string name="min_confidence">Minimum confidence</string>
+    <string name="record_video">Record video</string>
+    <string name="video_audio_mode">Video audio</string>
+    <string name="image_retention_hours">Keep processed images (hours)</string>
+    <string name="video_retention_hours">Keep processed video (hours)</string>
+    <string name="image_upload_policy">Send images to server</string>
+    <string name="copilot_alert">Copilot alert</string>
+    <string name="copilot_alert_volume">Alert sound level</string>
+    <string name="copilot_distance_control">Distance control system</string>
+    <string name="copilot_video_chunk_minutes">Video chunk (minutes)</string>
+    <string name="recording_chunk_minutes">Chunk size (minutes)</string>
+    <string name="recording_sound">Sound</string>
+    <string name="recording_retention_hours">Retention (hours, max 12)</string>
+    <string name="frame_quality">Frame quality</string>
+    <string name="alert_duration">Alert duration</string>
+    <string name="history_retention_frames">History retention (frames)</string>
+    <string name="history_frames">History frames</string>
+    <string name="history_frames_title">%1$s history</string>
+    <string name="history_frames_empty">No history frames yet.</string>
+    <string name="show_bounding_boxes">Show detection boxes</string>
+    <string name="ai_model">Default AI model</string>
+
+    <string name="disk_usage_spotter">Spotter disk usage: %1$s</string>
+    <string name="disk_usage_watchman">Watchman disk usage: %1$s</string>
+    <string name="disk_usage_copilot">Copilot disk usage: %1$s</string>
+    <string name="disk_usage_logs">Logs disk usage: %1$s</string>
+    <string name="flush_spotter">Flush Disk for Spotter</string>
+    <string name="flush_watchman">Flush Disk for Watchman</string>
+    <string name="flush_copilot">Flush Disk for Copilot</string>
+    <string name="flush_logs">Flush Disk for Logs</string>
+    <string name="storage_flushed">%1$s storage cleared</string>
+    <string name="flush_confirm">Delete all stored files for %1$s?</string>
+
+    <string name="connected_label">Connected</string>
+    <string name="disconnected_label">Disconnected</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="ping_status_ms">Ping: %1$d ms</string>
+    <string name="ping_status_unknown">Ping: —</string>
+    <string name="api_connection_status">API: %1$s</string>
+    <string name="livekit_connection_status">LiveKit: %1$s</string>
+    <string name="livekit_connection_status_sessions">LiveKit: %1$s (%2$d sessions)</string>
+
     <string name="server_connected">Connected to server</string>
+    <string name="server_connected_with_warning">Connected to API — %1$s</string>
     <string name="server_connect_failed">Could not connect to server</string>
-    <string name="server_status_connected">Server: Connected</string>
-    <string name="server_status_connecting">Server: Connecting…</string>
-    <string name="server_status_failed">Server: Connection failed</string>
-    <string name="server_status_disconnected">Server: Disconnected</string>
-    <string name="server_not_connected">Server not connected — connect in Settings</string>
+
+    <string name="history_frame_prev">Previous</string>
+    <string name="history_frame_next">Next</string>
+    <string name="history_frame_viewer_title">Frame</string>
 
     <string name="rear_camera">Rear Camera</string>
     <string name="front_camera">Front Camera</string>
     <string name="camera_preview">Camera preview</string>
-    <string name="camera_idle">Camera: not started</string>
-    <string name="camera_opening">Camera: opening…</string>
-    <string name="camera_active">Camera: %1$s active</string>
-    <string name="camera_ready">Camera: live preview active</string>
-    <string name="camera_background">Camera: capturing in background (preview paused)</string>
     <string name="camera_error">Camera: failed to open — check permissions</string>
 
-    <string name="operating_mode">Operating mode</string>
-    <string name="mode_active">Mode: %1$s</string>
-    <string name="mode_idle">Mode: not selected</string>
-    <string name="ai_model">AI model (NCNN)</string>
-    <string name="capture_interval_ms">Screenshot interval (milliseconds)</string>
-    <string name="telemetry_interval_ms">Telemetry interval (milliseconds)</string>
-    <string name="object_detection_on_device">Object detection on device</string>
-    <string name="screen_on_interval_min">Keep-alive: turn on screen every (minutes, 0 = off)</string>
-    <string name="settings_sync_interval_sec">Pull settings from server every (seconds)</string>
-    <string name="detection_image_quality">Object detection image quality</string>
-    <string name="sending_image_quality">Sending image quality</string>
-    <string name="realtime_fps">Realtime FPS</string>
-    <string name="alert_volume">Alert volume</string>
-    <string name="alert_duration">Alert duration</string>
-    <string name="min_detection_confidence">Minimum detection confidence (0.10–0.95)</string>
-    <string name="stream_mode">WebRTC stream mode</string>
-    <string name="wifi_only_downloads">Download models/sounds on Wi-Fi only</string>
     <string name="fps_option">%1$d FPS</string>
-    <string name="fps_idle">Realtime FPS: —</string>
-    <string name="fps_active">Realtime FPS: %1$d</string>
 
-    <string name="uploading_frames_interval">Uploading telemetry every %1$d s</string>
-    <string name="server_not_configured">Server not configured — set address in Settings</string>
     <string name="dogan_running">Dogan running</string>
     <string name="settings_saved">Settings saved</string>
-    <string name="object_detection_summary_none">On-device detection: no objects</string>
-
-    <string name="motion_detected_title">Vehicle motion detected</string>
-    <string name="motion_detected_body">Bump detected (%.2f m/s²). Capturing photo now.</string>
 
     <string name="spotter_watching">Now watching: %1$s</string>
 
@@ -68,10 +113,11 @@
     <string name="diagnostics_fail">FAIL</string>
     <string name="test_internet">Test Internet</string>
     <string name="test_server_api">Test Server API</string>
-    <string name="test_webrtc">Test Server WebRTC</string>
+    <string name="test_webrtc">Test LiveKit</string>
     <string name="run_all_tests">Run All Tests</string>
 
     <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
     <string name="permissions_required">Camera, microphone, and location permissions are required.</string>
     <string name="permissions_granted">Permissions granted.</string>
 </resources>

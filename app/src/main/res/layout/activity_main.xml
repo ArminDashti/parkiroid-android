@@ -1,129 +1,189 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#000000">
-
-        <androidx.camera.view.PreviewView
-            android:id="@+id/previewView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/camera_preview" />
-
-        <com.dogan.DetectionOverlayView
-            android:id="@+id/detectionOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
+    android:background="@color/dogan_surface"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
-        <TextView
-            android:id="@+id/serverStatusTxt"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cameraBtn"
+            style="@style/Widget.Dogan.Button"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/server_status_disconnected"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/modeStatusTxt"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/mode_idle" />
-
-        <TextView
-            android:id="@+id/cameraStatusTxt"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/camera_idle" />
-
-        <TextView
-            android:id="@+id/fpsStatusTxt"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/fps_idle" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="@string/operating_mode">
-
-            <AutoCompleteTextView
-                android:id="@+id/modeInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:layout_height="80dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/camera_button"
+            app:icon="@drawable/ic_camera"
+            app:iconGravity="textStart" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/rearCameraBtn"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/modeCopilotBtn"
+                style="@style/Widget.Dogan.Button.ModeUnselected"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
+                android:layout_height="72dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
-                android:text="@string/rear_camera" />
+                android:text="@string/mode_copilot"
+                app:icon="@drawable/ic_copilot"
+                app:iconGravity="textTop"
+                app:iconPadding="2dp" />
 
-            <Button
-                android:id="@+id/frontCameraBtn"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/modeSpotterBtn"
+                style="@style/Widget.Dogan.Button.ModeUnselected"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
                 android:layout_weight="1"
-                android:text="@string/front_camera" />
+                android:text="@string/mode_spotter"
+                app:icon="@drawable/ic_spotter"
+                app:iconGravity="textTop"
+                app:iconPadding="2dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/modeWatchmanBtn"
+                style="@style/Widget.Dogan.Button.ModeUnselected"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1"
+                android:text="@string/mode_watchman"
+                app:icon="@drawable/ic_watchman"
+                app:iconGravity="textTop"
+                app:iconPadding="2dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/modeOffBtn"
+                style="@style/Widget.Dogan.Button.ModeUnselected"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/mode_off"
+                app:icon="@drawable/ic_off"
+                app:iconGravity="textTop"
+                app:iconPadding="2dp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             android:orientation="horizontal">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/copilotSettingsBtn"
+                style="@style/Widget.Dogan.Button"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/settings_section_copilot"
+                app:icon="@drawable/ic_copilot" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/recordingSettingsBtn"
+                style="@style/Widget.Dogan.Button"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/settings_section_recording"
+                app:icon="@drawable/ic_recording" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/spotterSettingsBtn"
+                style="@style/Widget.Dogan.Button"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/settings_section_spotter"
+                app:icon="@drawable/ic_spotter" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/watchmanSettingsBtn"
+                style="@style/Widget.Dogan.Button"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/settings_section_watchman"
+                app:icon="@drawable/ic_watchman" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/connectivityBtn"
+                style="@style/Widget.Dogan.Button"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/settings_section_connectivity"
+                app:icon="@drawable/ic_connectivity" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/settingsBtn"
+                style="@style/Widget.Dogan.Button"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/settings_title" />
-
-            <Button
-                android:id="@+id/diagnosticsBtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="72dp"
                 android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
-                android:text="@string/diagnostics_title" />
+                android:text="@string/settings_title"
+                app:icon="@drawable/ic_settings" />
+        </LinearLayout>
 
-            <Button
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/logsBtn"
+                style="@style/Widget.Dogan.Button"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="72dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/logs_title"
+                app:icon="@drawable/ic_logs" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/exitBtn"
+                style="@style/Widget.Dogan.Button"
+                android:layout_width="0dp"
+                android:layout_height="72dp"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
-                android:text="@string/logs_title" />
+                android:text="@string/exit_app"
+                app:icon="@drawable/ic_exit" />
         </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</ScrollView>

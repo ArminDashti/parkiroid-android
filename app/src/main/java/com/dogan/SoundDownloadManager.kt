@@ -22,24 +22,21 @@ class SoundDownloadManager(
 
     fun soundFile(id: String, format: String): File = File(soundsDir(), "$id.$format")
 
-    fun fetchAndDownloadAll(baseUrl: String, apiKey: String, wifiOnly: Boolean): ModelDownloadManager.DownloadResult {
-        if (wifiOnly && !NetworkInfoCollector.isWifiConnected(context)) {
-            return ModelDownloadManager.DownloadResult(false, "Wi-Fi required for sound download")
-        }
-        val manifest = apiClient.fetchSoundsManifest(baseUrl, apiKey)
-            ?: return ModelDownloadManager.DownloadResult(false, "Could not fetch sounds manifest")
+    fun fetchAndDownloadAll(baseUrl: String): DownloadResult {
+        val manifest = apiClient.fetchSoundsManifest(baseUrl)
+            ?: return DownloadResult(false, "Could not fetch sounds manifest")
         val entries = parseManifest(manifest)
         var failed = 0
         for (entry in entries) {
-            if (!downloadSound(baseUrl, apiKey, entry)) failed++
+            if (!downloadSound(baseUrl, entry)) failed++
         }
-        return ModelDownloadManager.DownloadResult(failed == 0, if (failed > 0) "$failed sound(s) failed" else "All sounds ready")
+        return DownloadResult(failed == 0, if (failed > 0) "$failed sound(s) failed" else "All sounds ready")
     }
 
-    fun downloadSound(baseUrl: String, apiKey: String, entry: SoundEntry): Boolean {
+    fun downloadSound(baseUrl: String, entry: SoundEntry): Boolean {
         val file = soundFile(entry.id, entry.format)
         if (file.exists()) return true
-        val bytes = apiClient.downloadFile(baseUrl, apiKey, entry.url) ?: return false
+        val bytes = apiClient.downloadFile(baseUrl, entry.url) ?: return false
         if (entry.sha256.isNotBlank()) {
             val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
             val hex = digest.joinToString("") { "%02x".format(it) }

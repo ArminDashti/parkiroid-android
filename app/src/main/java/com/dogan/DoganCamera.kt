@@ -64,7 +64,7 @@ object DoganCamera {
         realtimeFps: Int = 5,
     ) {
         activeFacing = cameraFacing
-        if (boundOwner === lifecycleOwner && imageCapture != null) {
+        if (boundOwner === lifecycleOwner && imageCapture != null && imageAnalysis != null) {
             readyListener?.invoke()
             return
         }

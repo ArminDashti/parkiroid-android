@@ -18,9 +18,11 @@ Snapshot of where the product stands today and what to expect when planning pilo
 - [x] Battery level and temperature reporting to server
 - [x] Motion / bump detection with alert notification and extra capture
 - [x] Cloud object detection (upload frames for server-side analysis)
-- [x] Dedicated Settings screen for server and interval options
+- [x] Dedicated section Settings screens (Connectivity, Recording, modes, General)
 - [x] Persistent notification while monitoring
-- [x] Live camera preview on main screen during monitoring
+- [x] Camera eye activity for live preview (not on main hub)
+- [x] Local history frames gallery with bounding boxes
+- [x] Mode selector including OFF on main screen
 
 ## What is not included (yet)
 
@@ -28,11 +30,10 @@ These items are **out of scope** for the current app version:
 
 | Gap | Impact |
 |-----|--------|
-| **In-app photo gallery or history** | Users cannot scroll through past captures on the phone; history depends on the server |
 | **GPS / location reporting** | No map or geofencing; server cannot see where the vehicle was parked from the app alone |
-| **User accounts or login in the app** | Identity is device + API key only; no end-user sign-in flow |
+| **User accounts or login in the app** | Username + password on Connectivity (`POST /auth`); same token used for API and LiveKit |
+| **Embedded device API key login** | Android no longer sends `api_key`; use username/password only |
 | **Remote start/stop from server** | Monitoring is controlled only from the phone |
-| **Multi-camera support** | Rear camera only |
 | **iOS version** | Android only |
 | **Built-in web dashboard** | Viewing data requires the separate Dogan server or custom tooling |
 
@@ -54,10 +55,11 @@ Roadmap priorities should be confirmed with the product owner; the list above re
 
 ### Operational
 
-- Server address and API key must be **correct and kept in sync** with server configuration.
+- Server address and username/password must be **correct and kept in sync** with server admin credentials.
 - A valid server address is **required** to start monitoring.
 - **HTTP and HTTPS** server URLs are supported (`http://` works on Android 10+ via network security config for local/dev servers).
 - Motion detection sensitivity is tuned for **gentle bumps and parking-lot contacts**; extreme environments may need field validation.
+- Object detection uses embedded YOLO26 COCO-80 weights (person/car/motorcycle/truck, etc.). Copilot `speed_camera` / `speed_limit_sign` classes are not in COCO and will not fire until a fine-tuned model is embedded.
 - Object detection results are available on the server; the app shows upload status only.
 
 ### Android 10 compatibility

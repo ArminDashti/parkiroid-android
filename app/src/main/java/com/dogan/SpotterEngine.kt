@@ -18,9 +18,9 @@ class SpotterEngine(
         val watched = watchedVehicleStore.all()
         if (watched.isEmpty()) return
 
-        val vehicleLabels = setOf("car", "motorcycle", "truck")
+        val minConfidence = settings.confidenceForMode(OperatingMode.SPOTTER)
         val presentVehicles = detections.filter {
-            it.label in vehicleLabels && it.confidence >= settings.minDetectionConfidence
+            it.label == "car" && it.confidence >= minConfidence
         }
 
         for (vehicle in watched) {

@@ -13,22 +13,35 @@ import java.io.File
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-/** HTTP client for Dogan server auth, telemetry, models, sounds, and diagnostics. */
+/** HTTP client for Dogan server auth, telemetry, sounds, and diagnostics. */
 class DoganApiClient(
-    private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .build(),
+    private val httpClient: OkHttpClient = createHttpClient(),
     private val deviceId: String,
 ) {
     @Volatile private var bearerToken: String? = null
     @Volatile private var tokenExpiresAtEpochMillis: Long = 0L
+    @Volatile private var lastSslWarning: String? = null
 
-    fun testConnection(baseUrl: String, apiKey: String): Boolean {
+    fun testConnection(baseUrl: String): Boolean {
         if (!isValidBaseUrl(baseUrl)) return false
-        if (pingHealth(baseUrl) != null) return true
-        return authenticate(baseUrl, apiKey)
+        return authenticate(baseUrl)
+    }
+
+    /** Authenticate and verify the same bearer works for LiveKit session creation. */
+    fun connectWithApiAndLiveKit(baseUrl: String): ConnectProbeResult {
+        if (!isValidBaseUrl(baseUrl)) {
+            return ConnectProbeResult(false, false, "Invalid server URL")
+        }
+        val auth = authenticateDetailed(baseUrl)
+        if (!auth.success) {
+            return ConnectProbeResult(false, false, auth.error ?: "Authentication failed")
+        }
+        val liveKit = probeLiveKitSession(baseUrl)
+        return ConnectProbeResult(
+            apiOk = true,
+            liveKitOk = liveKit.success,
+            error = if (liveKit.success) null else liveKit.error,
+        )
     }
 
     fun pingHealthWithLatency(baseUrl: String): HealthResult? {
@@ -44,39 +57,79 @@ class DoganApiClient(
                 HealthResult(success = response.isSuccessful, latencyMs = latency, httpCode = response.code)
             }
         } catch (e: Exception) {
+            logSslWarningIfNeeded(e)
             HealthResult(success = false, latencyMs = System.currentTimeMillis() - start, error = e.message)
         }
     }
 
-    fun authenticateWithResult(baseUrl: String, apiKey: String): AuthResult {
+    fun authenticateWithResult(baseUrl: String): AuthResult {
         if (!isValidBaseUrl(baseUrl)) return AuthResult(false, error = "Invalid base URL")
         val start = System.currentTimeMillis()
-        val ok = authenticate(baseUrl, apiKey)
-        return AuthResult(ok, latencyMs = System.currentTimeMillis() - start, token = if (ok) bearerToken else null)
+        val detailed = authenticateDetailed(baseUrl)
+        return AuthResult(
+            success = detailed.success,
+            latencyMs = System.currentTimeMillis() - start,
+            token = if (detailed.success) bearerToken else null,
+            error = detailed.error,
+        )
     }
 
-    fun submitTelemetry(baseUrl: String, apiKey: String, payload: JSONObject): Boolean {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return false
-        return postAuthenticated(baseUrl, apiKey, "/api/v1/telemetry", payload.toString()) == PostResult.Success
+    fun listWebRtcConnections(baseUrl: String): List<WebRtcConnectionInfo> {
+        if (!ensureAuthenticated(baseUrl)) return emptyList()
+        val json = getAuthenticatedObject(baseUrl, "/api/v1/webrtc/connections?device-id=$deviceId")
+            ?: return emptyList()
+        val array = json.optJSONArray("connections") ?: return emptyList()
+        val result = ArrayList<WebRtcConnectionInfo>(array.length())
+        for (i in 0 until array.length()) {
+            val item = array.optJSONObject(i) ?: continue
+            result.add(
+                WebRtcConnectionInfo(
+                    id = item.optLong("id"),
+                    deviceId = item.optString("device_id"),
+                    room = item.optString("room"),
+                    identity = item.optString("identity"),
+                    role = item.optString("role"),
+                    status = item.optString("status"),
+                    disconnectedAt = item.optString("disconnected_at").takeIf { it.isNotBlank() },
+                ),
+            )
+        }
+        return result
     }
 
-    fun fetchModelsManifest(baseUrl: String, apiKey: String): JSONArray? {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return null
-        return getAuthenticatedJson(baseUrl, "/api/v1/models")
+    fun submitTelemetry(baseUrl: String, payload: JSONObject): Boolean {
+        if (!ensureAuthenticated(baseUrl)) return false
+        return postAuthenticated(baseUrl, "/api/v1/telemetry", payload.toString()) == PostResult.Success
     }
 
-    fun fetchSoundsManifest(baseUrl: String, apiKey: String): JSONArray? {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+    fun fetchSoundsManifest(baseUrl: String): JSONArray? {
+        if (!ensureAuthenticated(baseUrl)) return null
         return getAuthenticatedJson(baseUrl, "/api/v1/sounds")
     }
 
-    fun fetchSettings(baseUrl: String, apiKey: String): JSONObject? {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+    fun fetchSettings(baseUrl: String): JSONObject? {
+        if (!ensureAuthenticated(baseUrl)) return null
         return getAuthenticatedObject(baseUrl, "/api/v1/settings?device_id=$deviceId")
     }
 
-    fun downloadFile(baseUrl: String, apiKey: String, url: String): ByteArray? {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+    /** Upsert a single android setting on the server (`PUT /api/v1/settings`). */
+    fun putSetting(baseUrl: String, key: String, value: Any?): Boolean {
+        if (!ensureAuthenticated(baseUrl)) return false
+        val payload = JSONObject()
+            .put("platform", "android")
+            .put("key", key)
+            .put("value", value?.toString() ?: "")
+            .toString()
+        val first = executePut(baseUrl, "/api/v1/settings", payload, bearerToken)
+        if (first == PostResult.Success) return true
+        if (first != PostResult.Unauthorized) return false
+        clearToken()
+        if (!authenticate(baseUrl)) return false
+        return executePut(baseUrl, "/api/v1/settings", payload, bearerToken) == PostResult.Success
+    }
+
+    fun downloadFile(baseUrl: String, url: String): ByteArray? {
+        if (!ensureAuthenticated(baseUrl)) return null
         val token = bearerToken ?: return null
         val request = Request.Builder()
             .url(url)
@@ -93,10 +146,10 @@ class DoganApiClient(
         }
     }
 
-    fun createWebRtcSession(baseUrl: String, apiKey: String): WebRtcSessionResult? {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return null
+    fun createWebRtcSession(baseUrl: String): WebRtcSessionResult? {
+        if (!ensureAuthenticated(baseUrl)) return null
         val payload = JSONObject().put("device_id", deviceId).toString()
-        val result = postAuthenticatedWithBody(baseUrl, apiKey, "/api/v1/webrtc/session", payload)
+        val result = postAuthenticatedWithBody(baseUrl, "/api/v1/webrtc/session", payload)
         if (result.body.isNullOrBlank()) return null
         return try {
             val json = JSONObject(result.body!!)
@@ -113,36 +166,17 @@ class DoganApiClient(
         }
     }
 
-    fun requestStreamingToken(baseUrl: String, apiKey: String, role: String): WebRtcSessionResult? {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return null
-        val payload = JSONObject()
-            .put("device_id", deviceId)
-            .put("role", role)
-            .toString()
-        val result = postAuthenticatedWithBody(baseUrl, apiKey, "/api/v1/streaming/token", payload)
-        if (result.body.isNullOrBlank()) return null
-        return try {
-            val json = JSONObject(result.body!!)
-            WebRtcSessionResult(
-                sessionId = json.optString("room"),
-                token = json.optString("token"),
-                url = json.optString("url"),
-                room = json.optString("room"),
-                identity = json.optString("identity"),
-                iceServers = null,
-            )
-        } catch (_: Exception) {
-            null
-        }
+    fun fetchPendingActions(baseUrl: String): JSONArray? {
+        if (!ensureAuthenticated(baseUrl)) return null
+        return getAuthenticatedArray(baseUrl, "/api/v1/actions/pending?device_id=$deviceId")
     }
 
     fun submitDiagnosticAudio(
         baseUrl: String,
-        apiKey: String,
         wavFile: File,
         metadata: JSONObject,
     ): Boolean {
-        if (!ensureAuthenticated(baseUrl, apiKey)) return false
+        if (!ensureAuthenticated(baseUrl)) return false
         val token = bearerToken ?: return false
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
@@ -167,25 +201,54 @@ class DoganApiClient(
 
     fun getBearerToken(): String? = bearerToken
 
-    private fun postAuthenticated(baseUrl: String, apiKey: String, path: String, body: String): PostResult {
+    fun consumeSslWarning(): String? {
+        val warning = lastSslWarning
+        lastSslWarning = null
+        return warning
+    }
+
+    private fun postAuthenticated(baseUrl: String, path: String, body: String): PostResult {
         val firstAttempt = executePost(baseUrl, path, body, bearerToken)
         if (firstAttempt.result != PostResult.Unauthorized) return firstAttempt.result
         clearToken()
-        if (!authenticate(baseUrl, apiKey)) return PostResult.Failed
+        if (!authenticate(baseUrl)) return PostResult.Failed
         return executePost(baseUrl, path, body, bearerToken).result
     }
 
-    private fun postAuthenticatedWithBody(baseUrl: String, apiKey: String, path: String, body: String): PostResponse {
+    private fun postAuthenticatedWithBody(baseUrl: String, path: String, body: String): PostResponse {
         val first = executePost(baseUrl, path, body, bearerToken)
         if (first.result != PostResult.Unauthorized) return first
         clearToken()
-        if (!authenticate(baseUrl, apiKey)) return PostResponse(PostResult.Failed, null)
+        if (!authenticate(baseUrl)) return PostResponse(PostResult.Failed, null)
         return executePost(baseUrl, path, body, bearerToken)
+    }
+
+    private fun getAuthenticatedArray(baseUrl: String, path: String): JSONArray? {
+        val token = bearerToken ?: return null
+        val request = Request.Builder()
+            .url("$baseUrl$path")
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+        return try {
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                val body = response.body?.string() ?: return null
+                JSONArray(body)
+            }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun getAuthenticatedJson(baseUrl: String, path: String): JSONArray? {
         val json = getAuthenticatedObject(baseUrl, path) ?: return null
-        return json.optJSONArray("models") ?: json.optJSONArray("sounds") ?: JSONArray(json.toString())
+        return when {
+            json.has("models") -> json.optJSONArray("models")
+            json.has("sounds") -> json.optJSONArray("sounds")
+            json.optJSONArray("actions") != null -> json.optJSONArray("actions")
+            else -> JSONArray(json.toString())
+        }
     }
 
     private fun getAuthenticatedObject(baseUrl: String, path: String): JSONObject? {
@@ -213,32 +276,74 @@ class DoganApiClient(
         return trimmed.startsWith("http://") || trimmed.startsWith("https://")
     }
 
-    private fun ensureAuthenticated(baseUrl: String, apiKey: String): Boolean {
+    private fun ensureAuthenticated(baseUrl: String): Boolean {
         val token = bearerToken
         val refreshAt = tokenExpiresAtEpochMillis - TOKEN_REFRESH_LEAD_MS
         if (token != null && System.currentTimeMillis() < refreshAt) return true
-        return authenticate(baseUrl, apiKey)
+        return authenticate(baseUrl)
     }
 
-    private fun authenticate(baseUrl: String, apiKey: String): Boolean {
-        val trimmedKey = apiKey.trim()
-        if (trimmedKey.isEmpty()) return false
-        val payload = JSONObject().put("api_key", trimmedKey).toString()
+    private fun authenticate(baseUrl: String): Boolean = authenticateDetailed(baseUrl).success
+
+    private fun authenticateDetailed(baseUrl: String): AuthResult {
+        val username = SessionCredentials.username
+        val password = SessionCredentials.password
+        if (username.isBlank() || password.isBlank()) {
+            return AuthResult(false, error = "Username and password are required")
+        }
+        val payload = JSONObject()
+            .put("username", username)
+            .put("password", password)
+            .toString()
         val request = Request.Builder()
             .url("$baseUrl/api/v1/auth")
             .post(payload.toRequestBody(JSON_MEDIA_TYPE))
             .build()
         return try {
             httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return false
-                val responseBody = response.body?.string() ?: return false
+                val responseBody = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val serverError = parseErrorMessage(responseBody)
+                    return AuthResult(
+                        false,
+                        error = serverError ?: "Authentication failed (HTTP ${response.code})",
+                    )
+                }
+                if (responseBody.isBlank()) {
+                    return AuthResult(false, error = "Empty authentication response")
+                }
                 val json = JSONObject(responseBody)
                 bearerToken = json.getString("token")
                 tokenExpiresAtEpochMillis = parseExpiresAt(json.optString("expires_at"))
-                true
+                AuthResult(true, token = bearerToken)
             }
+        } catch (e: Exception) {
+            logSslWarningIfNeeded(e)
+            AuthResult(false, error = e.message ?: "Authentication request failed")
+        }
+    }
+
+    private fun probeLiveKitSession(baseUrl: String): AuthResult {
+        return try {
+            val session = createWebRtcSession(baseUrl)
+            if (session == null) {
+                AuthResult(false, error = "LiveKit session could not be created with these credentials")
+            } else if (session.token.isBlank() || session.url.isBlank()) {
+                AuthResult(false, error = "LiveKit session response missing token or URL")
+            } else {
+                AuthResult(true)
+            }
+        } catch (e: Exception) {
+            AuthResult(false, error = e.message ?: "LiveKit probe failed")
+        }
+    }
+
+    private fun parseErrorMessage(body: String): String? {
+        if (body.isBlank()) return null
+        return try {
+            JSONObject(body).optString("error").takeIf { it.isNotBlank() }
         } catch (_: Exception) {
-            false
+            null
         }
     }
 
@@ -259,8 +364,41 @@ class DoganApiClient(
                 }
                 PostResponse(result, responseBody)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logSslWarningIfNeeded(e)
             PostResponse(PostResult.Failed, null)
+        }
+    }
+
+    private fun executePut(baseUrl: String, path: String, body: String, token: String?): PostResult {
+        if (token.isNullOrBlank()) return PostResult.Unauthorized
+        val request = Request.Builder()
+            .url("$baseUrl$path")
+            .header("Authorization", "Bearer $token")
+            .put(body.toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        return try {
+            httpClient.newCall(request).execute().use { response ->
+                when {
+                    response.isSuccessful -> PostResult.Success
+                    response.code == 401 -> PostResult.Unauthorized
+                    else -> PostResult.Failed
+                }
+            }
+        } catch (e: Exception) {
+            logSslWarningIfNeeded(e)
+            PostResult.Failed
+        }
+    }
+
+    private fun logSslWarningIfNeeded(error: Exception) {
+        val message = error.message.orEmpty()
+        if (message.contains("SSL", ignoreCase = true) ||
+            message.contains("certificate", ignoreCase = true) ||
+            message.contains("Trust anchor", ignoreCase = true)
+        ) {
+            lastSslWarning = message
+            AppLogger.warn("SSL", "Certificate warning: $message")
         }
     }
 
@@ -294,6 +432,30 @@ class DoganApiClient(
         val error: String? = null,
     )
 
+    data class ConnectProbeResult(
+        val apiOk: Boolean,
+        val liveKitOk: Boolean,
+        val error: String? = null,
+    ) {
+        val success: Boolean get() = apiOk && liveKitOk
+    }
+
+    data class WebRtcConnectionInfo(
+        val id: Long,
+        val deviceId: String,
+        val room: String,
+        val identity: String,
+        val role: String,
+        val status: String,
+        val disconnectedAt: String?,
+    ) {
+        val isActive: Boolean
+            get() = disconnectedAt.isNullOrBlank() &&
+                (status.equals("active", ignoreCase = true) ||
+                    status.equals("connected", ignoreCase = true) ||
+                    status.isBlank())
+    }
+
     data class WebRtcSessionResult(
         val sessionId: String,
         val token: String,
@@ -308,5 +470,22 @@ class DoganApiClient(
     companion object {
         private val JSON_MEDIA_TYPE = "application/json".toMediaType()
         private const val TOKEN_REFRESH_LEAD_MS = 5 * 60 * 1000L
+
+        private fun createHttpClient(): OkHttpClient {
+            return OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .sslSocketFactory(
+                    SslWarningTrustManager.createSocketFactory(),
+                    object : javax.net.ssl.X509TrustManager {
+                        override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) = Unit
+                        override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) = Unit
+                        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = emptyArray()
+                    },
+                )
+                .hostnameVerifier(SslWarningTrustManager.hostnameVerifier)
+                .build()
+        }
     }
 }

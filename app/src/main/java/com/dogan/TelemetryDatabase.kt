@@ -73,5 +73,11 @@ class TelemetryDatabase(context: Context) : SQLiteOpenHelper(context, "dogan_tel
         return count
     }
 
+    fun purgeOlderThan(retentionHours: Int) {
+        val cutoff = System.currentTimeMillis() - retentionHours * 3_600_000L
+        val db = writableDatabase
+        db.execSQL("DELETE FROM telemetry_queue WHERE created_at < ?", arrayOf(cutoff))
+    }
+
     data class TelemetryRow(val id: Long, val payload: JSONObject, val createdAt: Long)
 }

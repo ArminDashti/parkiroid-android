@@ -39,15 +39,16 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val settings = settingsStore.settingsFlow.first()
+            SessionCredentials.updateFrom(settings)
             val deviceId = DeviceIdentity.resolveDeviceId(this@DiagnosticsActivity)
             val apiClient = DoganApiClient(deviceId = deviceId)
             val tester = ConnectivityTester(apiClient)
 
             val results = when (type) {
                 TestType.INTERNET -> listOf(tester.testInternet())
-                TestType.SERVER_API -> listOf(tester.testServerApi(settings.serverBaseUrl, settings.apiKey))
-                TestType.WEBRTC -> listOf(tester.testServerWebRtc(settings.serverBaseUrl, settings.apiKey))
-                TestType.ALL -> tester.runAll(settings.serverBaseUrl, settings.apiKey)
+                TestType.SERVER_API -> listOf(tester.testServerApi(settings.serverBaseUrl))
+                TestType.WEBRTC -> listOf(tester.testLiveKit(settings.serverBaseUrl))
+                TestType.ALL -> tester.runAll(settings.serverBaseUrl)
             }
 
             resultsContainer.removeAllViews()

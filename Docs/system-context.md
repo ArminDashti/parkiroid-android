@@ -30,17 +30,17 @@ The app is not a standalone cloud product—it is the **edge client** that feeds
 
 ### When monitoring is active
 
-1. User starts monitoring on the phone (requires a configured server).
-2. On each interval (and on motion events):
+1. User selects an active mode on the main grid (not OFF). CaptureService runs on-device detection always.
+2. On each FPS interval (and on motion events), when connected:
    - A photo is taken and uploaded to the server.
    - Battery level and temperature are recorded and sent.
-3. Photos and metrics are sent securely using the API key.
+3. Photos and metrics are sent securely using a bearer token from username/password login (only while Connected).
 4. Each phone is identified by a stable **device ID** (derived from the phone itself) so the server can distinguish multiple vehicles or deployments.
-5. The server performs object detection on uploaded frames; results are available via server APIs and tooling.
+5. The phone always runs YOLO26 NCNN detection locally (including bounding boxes on the Camera eye); the server may also analyze uploaded frames when connected.
 
 ### Authentication
 
-The phone authenticates to the server using the **API key** configured in Settings. The server must accept the same key. This prevents unauthorized devices from submitting data.
+The phone authenticates with **username and password** on Connectivity (`POST /api/v1/auth`). The returned bearer token authorizes both REST API calls and LiveKit session creation (`POST /webrtc/session`). Dev defaults live in repo-root `credentials.txt`.
 
 ## Device identity
 
@@ -57,7 +57,7 @@ Each installation is treated as one **device** on the server, identified automat
 
 - **Camera data** — Photos are captured only while monitoring is active. They are sent only to the server address the user configures.
 - **Location** — The app does **not** report GPS or location in the current version.
-- **Local history** — The app does **not** keep a browsable gallery of past photos on the phone; frames are transient unless the server stores them.
+- **Local history** — The app keeps a browsable **history frames** gallery per mode (ring buffer of JPEGs + bounding boxes) sized by history retention.
 - **Permissions** — Camera and network access are required for full operation; users must explicitly grant camera permission.
 
 Stakeholders should align server retention, access control, and privacy policies with how frames and metrics are stored on the backend.

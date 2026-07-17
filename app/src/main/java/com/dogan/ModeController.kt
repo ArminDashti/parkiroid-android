@@ -2,7 +2,7 @@ package com.dogan
 
 /** Dispatches frame analysis to the active operating mode engine(s). */
 class ModeController(
-    private val watchmanEngine: WatchmanEngine,
+    private val watcherEngine: WatcherEngine,
     private val spotterEngine: SpotterEngine,
     private val copilotEngine: CopilotEngine,
 ) {
@@ -13,14 +13,12 @@ class ModeController(
         settings: AppSettings,
     ) {
         when (settings.operatingMode) {
-            OperatingMode.WATCHMAN -> {
-                watchmanEngine.onDetections(detections, settings)
+            OperatingMode.OFF -> Unit
+            OperatingMode.WATCHER -> {
+                watcherEngine.onDetections(detections, settings)
             }
             OperatingMode.SPOTTER -> {
-                spotterEngine.onDetections(detections, imageWidth, imageHeight, settings)
-            }
-            OperatingMode.WATCHMAN_SPOTTER -> {
-                watchmanEngine.onDetections(detections, settings)
+                watcherEngine.onDetections(detections, settings)
                 spotterEngine.onDetections(detections, imageWidth, imageHeight, settings)
             }
             OperatingMode.COPILOT -> {
@@ -30,18 +28,18 @@ class ModeController(
     }
 
     fun onBump(settings: AppSettings, peakMps2: Float) {
-        if (settings.operatingMode == OperatingMode.WATCHMAN ||
-            settings.operatingMode == OperatingMode.WATCHMAN_SPOTTER
+        if (settings.operatingMode == OperatingMode.WATCHER ||
+            settings.operatingMode == OperatingMode.SPOTTER
         ) {
-            watchmanEngine.onBump(settings, peakMps2)
+            watcherEngine.onBump(settings, peakMps2)
         }
     }
 
     fun onSoundSpike(rms: Double, settings: AppSettings) {
-        if (settings.operatingMode == OperatingMode.WATCHMAN ||
-            settings.operatingMode == OperatingMode.WATCHMAN_SPOTTER
+        if (settings.operatingMode == OperatingMode.WATCHER ||
+            settings.operatingMode == OperatingMode.SPOTTER
         ) {
-            watchmanEngine.onSoundSpike(rms, settings)
+            watcherEngine.onSoundSpike(rms, settings)
         }
     }
 }

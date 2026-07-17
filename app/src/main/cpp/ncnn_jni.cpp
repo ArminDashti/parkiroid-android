@@ -14,8 +14,8 @@ static YoloV8Detector g_yolo_detector;
 static std::string g_loaded_model_id;
 static bool g_model_loaded = false;
 
-static bool is_yolov8_model(const std::string& model_id) {
-    return model_id.rfind("yolov8", 0) == 0;
+static bool is_supported_yolo_model(const std::string& model_id) {
+    return model_id.rfind("yolo26", 0) == 0 || model_id.rfind("yolov8", 0) == 0;
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -35,7 +35,7 @@ Java_com_dogan_NcnnNative_loadModel(
     const char* model = env->GetStringUTFChars(model_id, nullptr);
 
     const std::string model_id_value = model != nullptr ? model : "";
-    const bool supported = is_yolov8_model(model_id_value);
+    const bool supported = is_supported_yolo_model(model_id_value);
 
     LOGI("Loading NCNN model id=%s param=%s bin=%s", model, param, bin);
 
@@ -47,7 +47,7 @@ Java_com_dogan_NcnnNative_loadModel(
     if (supported) {
         ok = g_yolo_detector.load(param, bin);
         if (!ok) {
-            LOGE("Failed to load YOLOv8 NCNN model %s", model);
+            LOGE("Failed to load YOLO NCNN model %s", model);
         }
     } else {
         LOGE("Model %s is not supported by the NCNN runtime yet", model);

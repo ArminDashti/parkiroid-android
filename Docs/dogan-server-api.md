@@ -6,22 +6,19 @@ API prefix: `{base}/api/v1/` where `{base}` is the server root including `/dogan
 
 ### POST /auth
 
-Device (Android) request:
+Android request (username/password only):
 ```json
-{ "api_key": "dogan-dev-key" }
+{ "username": "armin", "password": "dogan123" }
 ```
 
-Admin request:
-```json
-{ "username": "armin", "password": "..." }
-```
+Admin/web may still accept the same username/password. Server also supports legacy device `{ "api_key": "..." }` for other clients; the Android app does not use API-key login.
 
 Response:
 ```json
 { "token": "<bearer>", "expires_at": "2026-07-11T12:00:00Z" }
 ```
 
-Device auth accepts `dogan-dev-key` (or `DOGAN_DEVICE_API_KEY`) and returns the embedded API bearer token.
+The bearer token authorizes REST calls and LiveKit session creation.
 
 ## Health
 
@@ -30,6 +27,8 @@ Device auth accepts `dogan-dev-key` (or `DOGAN_DEVICE_API_KEY`) and returns the 
 Returns HTTP 200 when the server is reachable. Used for latency measurement.
 
 ## Models (NCNN)
+
+> **Android note:** The Dogan Android app embeds YOLO26 NCNN weights (`yolo26_nano`, `yolo26_small`, `yolo26_medium`) in the APK and no longer calls these download endpoints. Server model APIs remain available for other clients or tooling.
 
 ### GET /models
 
@@ -40,19 +39,19 @@ Response:
 {
   "models": [
     {
-      "id": "yolov8_nano",
-      "param_url": "http://host:8090/dogan/api/v1/models/yolov8_nano/param",
-      "bin_url": "http://host:8090/dogan/api/v1/models/yolov8_nano/bin",
+      "id": "yolo26_nano",
+      "param_url": "http://host:8090/dogan/api/v1/models/yolo26_nano/param",
+      "bin_url": "http://host:8090/dogan/api/v1/models/yolo26_nano/bin",
       "param_sha256": "...",
       "bin_sha256": "...",
       "format": "ncnn",
-      "labels": ["person", "car", "motorcycle", "truck", "speed_camera", "speed_limit_sign"]
+      "labels": ["person", "bicycle", "car", "..."]
     }
   ]
 }
 ```
 
-Model `id` values must match Android settings: `yolov8_nano`, `yolov8_small`, `mobilenet_ssd`.
+Suggested model `id` values for newer clients: `yolo26_nano`, `yolo26_small`, `yolo26_medium`. Legacy ids (`yolov8_nano`, `yolov8_small`, `mobilenet_ssd`) may still exist on older servers.
 
 ### GET /models/:id/param
 
@@ -69,7 +68,7 @@ Requires bearer token. Registers or updates model metadata. If `param_sha256` / 
 Request:
 ```json
 {
-  "model_name": "yolov8_nano",
+  "model_name": "yolo26_nano",
   "param_sha256": "...",
   "bin_sha256": "...",
   "labels": ["person", "car"],
@@ -114,7 +113,7 @@ Response:
 {
   "device_id": "<android_id>",
   "operating_mode": "watchman",
-  "ai_model": "yolov8_nano",
+  "ai_model": "yolo26_nano",
   "capture_interval_ms": 15000,
   "telemetry_interval_ms": 1000,
   "object_detection_on_device": false,
@@ -131,7 +130,7 @@ Response:
 }
 ```
 
-The client polls this endpoint every `settings_sync_interval_sec` (default 60) while connected. Server address, API key, and active camera remain device-local.
+The client polls this endpoint every `settings_sync_interval_sec` (default 15) while connected. Server address, username/password, active camera, show-detection-boxes, and **object detection on device** remain device-local. The Android client ignores `wifi_only_downloads` if present (alert sounds always download when connected).
 
 ## Telemetry
 

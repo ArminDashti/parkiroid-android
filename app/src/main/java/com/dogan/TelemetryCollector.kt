@@ -9,18 +9,20 @@ import org.json.JSONObject
 import java.io.File
 import java.time.Instant
 
-/** Collects the fixed 14-field telemetry snapshot. */
+/** Collects the unified telemetry snapshot. */
 class TelemetryCollector(
     private val context: Context,
     private val locationTracker: LocationTracker,
     private val ambientLightSensor: AmbientLightSensor,
     private val audioCapture: AudioCapture,
     private val deviceId: String,
+    private val resourceMonitor: DeviceResourceMonitor,
 ) {
     fun collectSnapshot(
         rearFrameFile: File?,
         frontFrameFile: File?,
         serverLatencyMs: Long,
+        includeFrames: Boolean,
     ): JSONObject {
         val loc = locationTracker.lastLocation
         val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
@@ -48,11 +50,13 @@ class TelemetryCollector(
             .put("cabin_noise_rms", audioCapture.currentRms)
             .put("battery_temperature_celsius", batteryTemp.toDouble())
             .put("battery_percentage", batteryPct)
-            .put("rear_camera_frame_base64", encodeFile(rearFrameFile))
-            .put("front_camera_frame_base64", encodeFile(frontFrameFile))
+            .put("rear_camera_frame_base64", if (includeFrames) encodeFile(rearFrameFile) else "")
+            .put("front_camera_frame_base64", if (includeFrames) encodeFile(frontFrameFile) else "")
             .put("ambient_light_lux", ambientLightSensor.lux.toDouble())
             .put("server_latency_ms", serverLatencyMs)
             .put("device_ip_address", NetworkInfoCollector.getLocalIpAddress())
+            .put("cpu_usage_percent", resourceMonitor.cpuUsagePercent())
+            .put("ram_usage_percent", resourceMonitor.ramUsagePercent())
     }
 
     private fun encodeFile(file: File?): String {

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.hardware.SensorManager
@@ -16,6 +17,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -25,6 +27,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
@@ -52,14 +55,15 @@ class CaptureService : Service(), LifecycleOwner {
     private val analysisExecutor = Executors.newSingleThreadExecutor()
 
     private val telemetryDatabase by lazy { TelemetryDatabase(this) }
+    private val frameHistoryStore by lazy { FrameHistoryStore(this) }
     private val cabinNoiseArchive by lazy { CabinNoiseArchive(this) }
     private val locationTracker by lazy { LocationTracker(this) }
     private val ambientLightSensor by lazy { AmbientLightSensor(this) }
-    private val modelDownloadManager by lazy { ModelDownloadManager(this, apiClient) }
+    private val modelAssetManager by lazy { ModelAssetManager(this) }
     private val soundDownloadManager by lazy { SoundDownloadManager(this, apiClient) }
     private val alertManager by lazy { AlertManager(this, soundDownloadManager) }
     private val watchedVehicleStore by lazy { WatchedVehicleStore() }
-    private val watchmanEngine by lazy { WatchmanEngine(alertManager) }
+    private val watcherEngine by lazy { WatcherEngine(alertManager) }
     private val spotterEngine by lazy { SpotterEngine(watchedVehicleStore, alertManager) }
     private val suddenIntrusionDetector by lazy { SuddenIntrusionDetector() }
     private val signOcrDetector by lazy { SignOcrDetector(ncnnObjectDetector) }
@@ -67,10 +71,13 @@ class CaptureService : Service(), LifecycleOwner {
         CopilotEngine(suddenIntrusionDetector, signOcrDetector, locationTracker, alertManager)
     }
     private val modeController by lazy {
-        ModeController(watchmanEngine, spotterEngine, copilotEngine)
+        ModeController(watcherEngine, spotterEngine, copilotEngine)
     }
     private val telemetryUploader by lazy { TelemetryUploader(apiClient, telemetryDatabase) }
     private val liveKitStreamer by lazy { LiveKitStreamer(this, apiClient) }
+    private val resourceMonitor by lazy { DeviceResourceMonitor(this) }
+    private val detectionMediaArchive by lazy { DetectionMediaArchive(this) }
+    private val detectionVideoRecorder by lazy { DetectionVideoRecorder(this) }
 
     private lateinit var audioCapture: AudioCapture
     private lateinit var telemetryCollector: TelemetryCollector
@@ -94,14 +101,17 @@ class CaptureService : Service(), LifecycleOwner {
         super.onCreate()
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        ncnnObjectDetector = NcnnObjectDetector(this, modelDownloadManager)
+        ncnnObjectDetector = NcnnObjectDetector(modelAssetManager)
         audioCapture = AudioCapture(
             onSpike = { rms ->
                 cachedSettings?.let { modeController.onSoundSpike(rms, it) }
             },
             cabinNoiseArchive = cabinNoiseArchive,
         )
-        telemetryCollector = TelemetryCollector(this, locationTracker, ambientLightSensor, audioCapture, deviceId)
+        telemetryCollector = TelemetryCollector(
+            this, locationTracker, ambientLightSensor, audioCapture, deviceId, resourceMonitor,
+        )
+        AppLogger.init(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -126,6 +136,7 @@ class CaptureService : Service(), LifecycleOwner {
 
         cachedSettings = runBlocking { settingsStore.settingsFlow.first() }
         val settings = cachedSettings ?: return
+        SessionCredentials.updateFrom(settings)
 
         downloadAssets(settings)
         bindCamera(settings)
@@ -140,8 +151,11 @@ class CaptureService : Service(), LifecycleOwner {
 
         if (ServerConnectionManager.isConnected()) {
             ServerSettingsSync.start(this)
-            liveKitStreamer.start(settings.serverBaseUrl, settings.apiKey, settings.streamMode)
+            liveKitStreamer.start(settings.serverBaseUrl, settings.streamMode)
         }
+
+        vehicleMotionDetector.joltSensitivity = settings.joltSensitivity
+        audioCapture.soundSensitivity = settings.soundSensitivity
 
         AppLogger.info("Capture", "Monitoring started — ${settings.operatingMode.displayName}")
 
@@ -158,8 +172,10 @@ class CaptureService : Service(), LifecycleOwner {
         ambientLightSensor.stop()
         audioCapture.stop()
         liveKitStreamer.stop()
+        detectionVideoRecorder.stop()
         alertManager.release()
         DetectionTapBridge.handler = null
+        DetectionOverlayBridge.clear()
         ncnnObjectDetector.close()
         wakeLock?.release()
         wakeLock = null
@@ -171,79 +187,171 @@ class CaptureService : Service(), LifecycleOwner {
 
     private fun downloadAssets(settings: AppSettings) {
         io.execute {
+            modelAssetManager.ensureSelectedModelReady(settings.aiModel)
             if (ServerConnectionManager.isConnected()) {
-                modelDownloadManager.fetchAndDownloadModel(
-                    settings.serverBaseUrl,
-                    settings.apiKey,
-                    settings.aiModel.toStoredValue(),
-                    settings.wifiOnlyDownloads,
-                )
-                modelDownloadManager.fetchAndDownloadAll(settings.serverBaseUrl, settings.apiKey, settings.wifiOnlyDownloads)
-                soundDownloadManager.fetchAndDownloadAll(settings.serverBaseUrl, settings.apiKey, settings.wifiOnlyDownloads)
+                soundDownloadManager.fetchAndDownloadAll(settings.serverBaseUrl)
             }
         }
     }
 
     private fun bindCamera(settings: AppSettings) {
+        // Drop any MainActivity preview-only bind so ImageAnalysis is always attached.
+        DoganCamera.clear()
         DoganCamera.setAnalysisListener { proxy ->
             processAnalysisFrame(proxy, settings)
+        }
+        val previewFacing = when (settings.activeCamera) {
+            CameraFacing.FRONT -> CameraFacing.FRONT
+            else -> CameraFacing.REAR
         }
         DoganCamera.bindForMonitoring(
             context = this,
             lifecycleOwner = this,
-            cameraFacing = settings.activeCamera,
+            cameraFacing = previewFacing,
             jpegQuality = settings.sendingImageQuality.jpegQuality,
             analysisExecutor = analysisExecutor,
-            realtimeFps = settings.realtimeFps,
+            realtimeFps = settings.fpsForMode(settings.operatingMode).toInt().coerceAtLeast(1),
+        )
+        AppLogger.info(
+            "Detection",
+            "Analysis camera bound (mode=${settings.operatingMode.displayName})",
         )
     }
 
-    private fun processAnalysisFrame(proxy: androidx.camera.core.ImageProxy, settings: AppSettings) {
+    private fun processAnalysisFrame(proxy: ImageProxy, settings: AppSettings) {
         try {
             val now = System.currentTimeMillis()
-            val minInterval = 1000L / settings.realtimeFps.coerceAtLeast(1)
+            val currentSettings = cachedSettings ?: settings
+            if (currentSettings.operatingMode == OperatingMode.OFF) {
+                DetectionOverlayBridge.clear()
+                return
+            }
+            vehicleMotionDetector.joltSensitivity = currentSettings.joltSensitivity
+            audioCapture.soundSensitivity = currentSettings.soundSensitivity
+            val fps = currentSettings.fpsForMode(currentSettings.operatingMode).coerceAtLeast(0.001f)
+            val minInterval = (1000f / fps).toLong().coerceAtLeast(1L)
             if (now - lastAnalysisAt < minInterval) return
             lastAnalysisAt = now
 
-            val currentSettings = cachedSettings ?: settings
-            if (!currentSettings.objectDetectionOnDevice) return
-
-            val bitmap = proxyToBitmap(proxy) ?: return
+            val bitmap = proxyToBitmap(proxy)
+            if (bitmap == null) {
+                AppLogger.error("Detection", "Failed to convert camera frame to bitmap")
+                return
+            }
             val result = ncnnObjectDetector.detect(
                 bitmap,
-                currentSettings.minDetectionConfidence,
+                currentSettings.confidenceForMode(currentSettings.operatingMode),
                 currentSettings.aiModel,
             )
-            bitmap.recycle()
+            val frameWidth = bitmap.width
+            val frameHeight = bitmap.height
             latestDetections.set(result.detections)
+            // Use post-rotation bitmap size so overlay coords match NCNN input.
+            DetectionOverlayBridge.publish(result.detections, frameWidth, frameHeight)
             modeController.processFrame(
                 result.detections,
-                proxy.width,
-                proxy.height,
+                frameWidth,
+                frameHeight,
                 currentSettings,
             )
+            frameHistoryStore.append(
+                mode = currentSettings.operatingMode,
+                bitmap = bitmap,
+                detections = result.detections,
+                maxFrames = currentSettings.historyRetentionForMode(currentSettings.operatingMode),
+            )
+            bitmap.recycle()
+            maybeRecordMedia(currentSettings)
             NcnnObjectDetector.logResult(result)
         } finally {
             proxy.close()
         }
     }
 
-    private fun proxyToBitmap(proxy: androidx.camera.core.ImageProxy): Bitmap? {
-        val yBuffer = proxy.planes[0].buffer
-        val uBuffer = proxy.planes[1].buffer
-        val vBuffer = proxy.planes[2].buffer
-        val ySize = yBuffer.remaining()
-        val uSize = uBuffer.remaining()
-        val vSize = vBuffer.remaining()
-        val nv21 = ByteArray(ySize + uSize + vSize)
-        yBuffer.get(nv21, 0, ySize)
-        vBuffer.get(nv21, ySize, vSize)
-        uBuffer.get(nv21, ySize + vSize, uSize)
+    /**
+     * Converts CameraX YUV_420_888 to a Bitmap, respecting plane strides and applying
+     * [ImageProxy.imageInfo.rotationDegrees] so inference matches the upright preview.
+     */
+    private fun proxyToBitmap(proxy: ImageProxy): Bitmap? {
+        val nv21 = yuv420888ToNv21(proxy) ?: return null
         val yuv = YuvImage(nv21, ImageFormat.NV21, proxy.width, proxy.height, null)
         val out = ByteArrayOutputStream()
-        yuv.compressToJpeg(Rect(0, 0, proxy.width, proxy.height), 80, out)
-        val jpegBytes = out.toByteArray()
-        return android.graphics.BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
+        if (!yuv.compressToJpeg(Rect(0, 0, proxy.width, proxy.height), 90, out)) {
+            AppLogger.error("Detection", "Failed to compress analysis frame to JPEG")
+            return null
+        }
+        val decoded = android.graphics.BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size())
+            ?: return null
+        val rotation = proxy.imageInfo.rotationDegrees
+        if (rotation == 0) return decoded
+        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+        val rotated = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+        if (rotated !== decoded) decoded.recycle()
+        return rotated
+    }
+
+    /** Packs YUV_420_888 planes into NV21 (YYYY… VUVU…), handling rowStride and pixelStride. */
+    private fun yuv420888ToNv21(proxy: ImageProxy): ByteArray? {
+        val width = proxy.width
+        val height = proxy.height
+        if (proxy.planes.size < 3) {
+            AppLogger.error("Detection", "ImageProxy has fewer than 3 planes")
+            return null
+        }
+        val yPlane = proxy.planes[0]
+        val uPlane = proxy.planes[1]
+        val vPlane = proxy.planes[2]
+        val ySize = width * height
+        val nv21 = ByteArray(ySize + ySize / 2)
+
+        copyPlane(yPlane.buffer, yPlane.rowStride, yPlane.pixelStride, width, height, nv21, 0)
+
+        val chromaHeight = height / 2
+        val chromaWidth = width / 2
+        val vBuffer = vPlane.buffer.duplicate()
+        val uBuffer = uPlane.buffer.duplicate()
+        val vRowStride = vPlane.rowStride
+        val uRowStride = uPlane.rowStride
+        val vPixelStride = vPlane.pixelStride
+        val uPixelStride = uPlane.pixelStride
+        val vBase = vBuffer.position()
+        val uBase = uBuffer.position()
+
+        var outputOffset = ySize
+        // NV21 interleaves V then U per chroma sample.
+        for (row in 0 until chromaHeight) {
+            val vRowStart = vBase + row * vRowStride
+            val uRowStart = uBase + row * uRowStride
+            for (col in 0 until chromaWidth) {
+                nv21[outputOffset++] = vBuffer.get(vRowStart + col * vPixelStride)
+                nv21[outputOffset++] = uBuffer.get(uRowStart + col * uPixelStride)
+            }
+        }
+        return nv21
+    }
+
+    private fun copyPlane(
+        source: ByteBuffer,
+        rowStride: Int,
+        pixelStride: Int,
+        width: Int,
+        height: Int,
+        out: ByteArray,
+        outOffset: Int,
+    ) {
+        val buffer = source.duplicate()
+        val base = buffer.position()
+        var outputPos = outOffset
+        if (pixelStride == 1 && rowStride == width) {
+            buffer.get(out, outOffset, width * height)
+            return
+        }
+        for (row in 0 until height) {
+            val rowStart = base + row * rowStride
+            for (col in 0 until width) {
+                out[outputPos++] = buffer.get(rowStart + col * pixelStride)
+            }
+        }
     }
 
     private fun switchCamera(facing: CameraFacing) {
@@ -254,10 +362,13 @@ class CaptureService : Service(), LifecycleOwner {
             DoganCamera.switchCamera(
                 context = this,
                 lifecycleOwner = this,
-                cameraFacing = facing,
+                cameraFacing = when (facing) {
+                    CameraFacing.BOTH -> CameraFacing.REAR
+                    else -> facing
+                },
                 jpegQuality = settings.sendingImageQuality.jpegQuality,
                 analysisExecutor = analysisExecutor,
-                realtimeFps = settings.realtimeFps,
+                realtimeFps = settings.fpsForMode(settings.operatingMode).toInt().coerceAtLeast(1),
             )
             AppLogger.info("Camera", "Switched to ${facing.name.lowercase()} camera")
         }
@@ -269,9 +380,12 @@ class CaptureService : Service(), LifecycleOwner {
                 try {
                     val settings = runBlocking { settingsStore.settingsFlow.first() }
                     cachedSettings = settings
+                    SessionCredentials.updateFrom(settings)
 
                     if (ServerConnectionManager.isConnected() && isValidBaseUrl(settings.serverBaseUrl)) {
                         collectAndEnqueueTelemetry(settings)
+                        telemetryDatabase.purgeOlderThan(settings.telemetryRetentionHours)
+                        AppLogger.purgeOlderThan(this@CaptureService, settings.logRetentionDays)
                     }
 
                     Thread.sleep(settings.telemetryIntervalMs)
@@ -286,29 +400,85 @@ class CaptureService : Service(), LifecycleOwner {
     }
 
     private fun collectAndEnqueueTelemetry(settings: AppSettings) {
-        val latch = java.util.concurrent.CountDownLatch(2)
+        val includeFrames = shouldIncludeFrames(settings)
+        val forceCapture = hasPendingCaptureAction(settings)
+        val latch = java.util.concurrent.CountDownLatch(
+            when (settings.activeCamera) {
+                CameraFacing.BOTH -> 2
+                else -> 1
+            },
+        )
         var rearFile: File? = null
         var frontFile: File? = null
 
-        DoganCamera.captureFromFacing(this, this, CameraFacing.REAR, settings.sendingImageQuality.jpegQuality, { file ->
-            rearFile = file
-            latch.countDown()
-        }, io)
-
-        DoganCamera.captureFromFacing(this, this, CameraFacing.FRONT, settings.sendingImageQuality.jpegQuality, { file ->
-            frontFile = file
-            latch.countDown()
-        }, io)
+        when (settings.activeCamera) {
+            CameraFacing.FRONT -> {
+                DoganCamera.captureFromFacing(this, this, CameraFacing.FRONT, settings.sendingImageQuality.jpegQuality, { file ->
+                    frontFile = file
+                    latch.countDown()
+                }, io)
+            }
+            CameraFacing.REAR -> {
+                DoganCamera.captureFromFacing(this, this, CameraFacing.REAR, settings.sendingImageQuality.jpegQuality, { file ->
+                    rearFile = file
+                    latch.countDown()
+                }, io)
+            }
+            CameraFacing.BOTH -> {
+                DoganCamera.captureFromFacing(this, this, CameraFacing.REAR, settings.sendingImageQuality.jpegQuality, { file ->
+                    rearFile = file
+                    latch.countDown()
+                }, io)
+                DoganCamera.captureFromFacing(this, this, CameraFacing.FRONT, settings.sendingImageQuality.jpegQuality, { file ->
+                    frontFile = file
+                    latch.countDown()
+                }, io)
+            }
+        }
 
         latch.await(15, java.util.concurrent.TimeUnit.SECONDS)
 
         val health = apiClient.pingHealthWithLatency(settings.serverBaseUrl)
         val latency = health?.latencyMs ?: -1L
 
-        val payload = telemetryCollector.collectSnapshot(rearFile, frontFile, latency)
+        val attachFrames = includeFrames || forceCapture
+        val payload = telemetryCollector.collectSnapshot(rearFile, frontFile, latency, attachFrames)
         telemetryDatabase.enqueue(payload)
         rearFile?.delete()
         frontFile?.delete()
+    }
+
+    private fun shouldIncludeFrames(settings: AppSettings): Boolean {
+        return settings.imageUploadPolicyForMode(settings.operatingMode) == ImageUploadPolicy.AUTO
+    }
+
+    private fun hasPendingCaptureAction(settings: AppSettings): Boolean {
+        val actions = apiClient.fetchPendingActions(settings.serverBaseUrl) ?: return false
+        return actions.length() > 0
+    }
+
+    private fun maybeRecordMedia(settings: AppSettings) {
+        if (settings.operatingMode == OperatingMode.OFF) {
+            if (detectionVideoRecorder.isRecording()) detectionVideoRecorder.stop()
+            return
+        }
+        val modeSettings = settings.modeSettings(settings.operatingMode)
+        detectionMediaArchive.enforceRetention(
+            settings.operatingMode,
+            modeSettings.imageRetentionHours,
+            settings.recordingRetentionHours,
+        )
+        val audioMode = if (settings.recordingSoundEnabled) {
+            VideoAudioMode.VIDEO_AND_SOUND
+        } else {
+            VideoAudioMode.VIDEO_ONLY
+        }
+        val chunkMinutes = settings.recordingChunkMinutes
+        if (!detectionVideoRecorder.isRecording()) {
+            detectionVideoRecorder.start(settings.operatingMode, audioMode, chunkMinutes)
+        } else {
+            detectionVideoRecorder.maybeRotateChunk(chunkMinutes, settings.operatingMode, audioMode)
+        }
     }
 
     private fun scheduleUploadLoop() {
@@ -317,7 +487,7 @@ class CaptureService : Service(), LifecycleOwner {
                 try {
                     val settings = cachedSettings ?: runBlocking { settingsStore.settingsFlow.first() }
                     if (ServerConnectionManager.isConnected() && isValidBaseUrl(settings.serverBaseUrl)) {
-                        val stats = telemetryUploader.uploadPending(settings.serverBaseUrl, settings.apiKey)
+                        val stats = telemetryUploader.uploadPending(settings.serverBaseUrl)
                         if (stats.uploaded > 0) {
                             AppLogger.info("Telemetry", "Uploaded ${stats.uploaded}, remaining ${stats.remaining}")
                         }
@@ -351,7 +521,6 @@ class CaptureService : Service(), LifecycleOwner {
                             .put("device_id", deviceId)
                         val ok = apiClient.submitDiagnosticAudio(
                             settings.serverBaseUrl,
-                            settings.apiKey,
                             segment.file,
                             metadata,
                         )

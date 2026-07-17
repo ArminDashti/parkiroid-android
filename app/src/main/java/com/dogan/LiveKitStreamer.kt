@@ -27,11 +27,13 @@ class LiveKitStreamer(
     private var room: Room? = null
     private var eventsJob: Job? = null
 
-    fun start(baseUrl: String, apiKey: String, streamMode: StreamMode) {
+    fun start(baseUrl: String, streamMode: StreamMode) {
         scope.launch {
             stopInternal()
-            val session = apiClient.createWebRtcSession(baseUrl, apiKey) ?: run {
+            val session = apiClient.createWebRtcSession(baseUrl) ?: run {
                 AppLogger.error("LiveKit", "Failed to create session")
+                LiveKitStatusCache.setStreaming(false)
+                LiveKitStatusCache.setError("LiveKit session could not be created")
                 return@launch
             }
             if (session.token.isBlank() || session.url.isBlank() || session.room.isBlank()) {
@@ -46,10 +48,12 @@ class LiveKitStreamer(
                         when (event) {
                             is RoomEvent.Connected -> {
                                 _streaming.value = true
+                                LiveKitStatusCache.setStreaming(true)
                                 AppLogger.info("LiveKit", "Connected to room ${session.room}")
                             }
                             is RoomEvent.Disconnected -> {
                                 _streaming.value = false
+                                LiveKitStatusCache.setStreaming(false)
                                 AppLogger.info("LiveKit", "Disconnected from room")
                             }
                             else -> Unit
@@ -64,6 +68,8 @@ class LiveKitStreamer(
             } catch (e: Exception) {
                 AppLogger.error("LiveKit", "Connect failed: ${e.message}")
                 _streaming.value = false
+                LiveKitStatusCache.setStreaming(false)
+                LiveKitStatusCache.setError(e.message ?: "LiveKit connect failed")
             }
         }
     }
@@ -100,5 +106,6 @@ class LiveKitStreamer(
         room?.disconnect()
         room = null
         _streaming.value = false
+        LiveKitStatusCache.setStreaming(false)
     }
 }

@@ -5,7 +5,7 @@ class TelemetryUploader(
     private val apiClient: DoganApiClient,
     private val database: TelemetryDatabase,
 ) {
-    fun uploadPending(baseUrl: String, apiKey: String): UploadStats {
+    fun uploadPending(baseUrl: String): UploadStats {
         val rows = database.peekPending()
         if (rows.isEmpty()) return UploadStats(0, 0, 0)
 
@@ -14,7 +14,7 @@ class TelemetryUploader(
         val flushedIds = mutableListOf<Long>()
 
         for (row in rows) {
-            val ok = apiClient.submitTelemetry(baseUrl, apiKey, row.payload)
+            val ok = apiClient.submitTelemetry(baseUrl, row.payload)
             if (ok) {
                 uploaded++
                 flushedIds.add(row.id)

@@ -1,8 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Dogan" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/ic_launcher_background</item>
-        <item name="colorPrimaryVariant">@color/ic_launcher_background</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
+    <style name="Theme.Dogan" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/dogan_primary_dark</item>
+        <item name="colorPrimaryVariant">@color/dogan_primary</item>
+        <item name="colorOnPrimary">@color/dogan_on_primary</item>
+        <item name="colorSecondary">@color/dogan_primary</item>
+        <item name="colorOnSecondary">@color/dogan_on_primary</item>
+        <item name="colorSurface">@color/dogan_surface</item>
+        <item name="colorOnSurface">@color/dogan_on_surface</item>
+        <item name="android:statusBarColor">@color/dogan_surface</item>
+        <item name="android:navigationBarColor">@color/dogan_surface</item>
+        <item name="android:windowBackground">@color/dogan_surface</item>
+        <item name="android:textColorPrimary">@color/dogan_on_surface</item>
+        <item name="android:textColorSecondary">@color/dogan_on_surface_secondary</item>
+        <item name="materialButtonStyle">@style/Widget.Dogan.Button</item>
+    </style>
+
+    <style name="Widget.Dogan.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/dogan_surface_elevated</item>
+        <item name="android:textColor">@color/dogan_on_surface</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="iconTint">@color/dogan_on_surface</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">8dp</item>
+    </style>
+
+    <style name="Widget.Dogan.Button.ModeSelected" parent="Widget.Dogan.Button">
+        <item name="backgroundTint">@color/dogan_mode_selected</item>
+    </style>
+
+    <style name="Widget.Dogan.Button.ModeUnselected" parent="Widget.Dogan.Button">
+        <item name="backgroundTint">@color/dogan_mode_unselected</item>
     </style>
 </resources>

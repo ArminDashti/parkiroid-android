@@ -1,5 +1,6 @@
 #include "yolov8_detector.h"
 
+#include <android/log.h>
 #include <cpu.h>
 
 #include <algorithm>
@@ -97,102 +98,6 @@ void nms_sorted_bboxes(
     }
 }
 
-float sigmoid(float value) {
-    return 1.f / (1.f + std::exp(-value));
-}
-
-void generate_proposals(
-    const ncnn::Mat& pred,
-    int stride,
-    const ncnn::Mat& in_pad,
-    float prob_threshold,
-    std::vector<ObjectProposal>& objects) {
-    const int w = in_pad.w;
-    const int h = in_pad.h;
-    const int num_grid_x = w / stride;
-    const int num_grid_y = h / stride;
-    const int reg_max = 16;
-    const int num_class = pred.w - reg_max * 4;
-
-    for (int y = 0; y < num_grid_y; y++) {
-        for (int x = 0; x < num_grid_x; x++) {
-            const ncnn::Mat pred_grid = pred.row_range(y * num_grid_x + x, 1);
-
-            int label = -1;
-            float score = -FLT_MAX;
-            const ncnn::Mat pred_score = pred_grid.range(reg_max * 4, num_class);
-            for (int k = 0; k < num_class; k++) {
-                const float candidate = pred_score[k];
-                if (candidate > score) {
-                    label = k;
-                    score = candidate;
-                }
-            }
-            score = sigmoid(score);
-            if (score < prob_threshold) {
-                continue;
-            }
-
-            ncnn::Mat pred_bbox = pred_grid.range(0, reg_max * 4).reshape(reg_max, 4);
-            {
-                ncnn::Layer* softmax = ncnn::create_layer("Softmax");
-                ncnn::ParamDict params;
-                params.set(0, 1);
-                params.set(1, 1);
-                softmax->load_param(params);
-
-                ncnn::Option option;
-                option.num_threads = 1;
-                option.use_packing_layout = false;
-                softmax->create_pipeline(option);
-                softmax->forward_inplace(pred_bbox, option);
-                softmax->destroy_pipeline(option);
-                delete softmax;
-            }
-
-            float pred_ltrb[4] = {0.f, 0.f, 0.f, 0.f};
-            for (int k = 0; k < 4; k++) {
-                float distance = 0.f;
-                const float* distance_after_softmax = pred_bbox.row(k);
-                for (int bin = 0; bin < reg_max; bin++) {
-                    distance += static_cast<float>(bin) * distance_after_softmax[bin];
-                }
-                pred_ltrb[k] = distance * static_cast<float>(stride);
-            }
-
-            const float center_x = (static_cast<float>(x) + 0.5f) * static_cast<float>(stride);
-            const float center_y = (static_cast<float>(y) + 0.5f) * static_cast<float>(stride);
-
-            ObjectProposal object;
-            object.x0 = center_x - pred_ltrb[0];
-            object.y0 = center_y - pred_ltrb[1];
-            object.x1 = center_x + pred_ltrb[2];
-            object.y1 = center_y + pred_ltrb[3];
-            object.label = label;
-            object.prob = score;
-            objects.push_back(object);
-        }
-    }
-}
-
-void generate_proposals(
-    const ncnn::Mat& pred,
-    const std::vector<int>& strides,
-    const ncnn::Mat& in_pad,
-    float prob_threshold,
-    std::vector<ObjectProposal>& objects) {
-    const int w = in_pad.w;
-    const int h = in_pad.h;
-    int pred_row_offset = 0;
-    for (int stride : strides) {
-        const int num_grid_x = w / stride;
-        const int num_grid_y = h / stride;
-        const int num_grid = num_grid_x * num_grid_y;
-        generate_proposals(pred.row_range(pred_row_offset, num_grid), stride, in_pad, prob_threshold, objects);
-        pred_row_offset += num_grid;
-    }
-}
-
 std::vector<unsigned char> argb_to_rgb(const int* argb_pixels, int pixel_count) {
     std::vector<unsigned char> rgb(static_cast<size_t>(pixel_count) * 3);
     for (int i = 0; i < pixel_count; i++) {
@@ -204,6 +109,118 @@ std::vector<unsigned char> argb_to_rgb(const int* argb_pixels, int pixel_count) 
     return rgb;
 }
 
+/**
+ * YOLO26 Ultralytics NCNN export: out0 is (4+num_class) x num_anchors,
+ * boxes as cxcywh in letterbox pixels, class scores already sigmoided.
+ *
+ * ncnn may store that tensor as any of:
+ *   - c=84, h=1, w=8400  (most common after Concat on axis 0)
+ *   - h=84, w=8400, c=1
+ *   - h=8400, w=84, c=1  (transposed)
+ */
+void generate_proposals_decoded(
+    const ncnn::Mat& output,
+    float prob_threshold,
+    std::vector<ObjectProposal>& objects) {
+    objects.clear();
+
+    enum class Layout { Channels, Rows, Cols };
+    Layout layout = Layout::Channels;
+    int num_channels = 0;
+    int num_anchors = 0;
+
+    if (output.c >= 5 && output.c <= 512) {
+        // Preferred: channels = 4+num_class, spatial = anchors
+        num_channels = output.c;
+        num_anchors = output.w * output.h;
+        layout = Layout::Channels;
+    } else if (output.h >= 5 && output.h <= 512 && output.w >= output.h) {
+        num_channels = output.h;
+        num_anchors = output.w;
+        layout = Layout::Rows;
+    } else if (output.w >= 5 && output.w <= 512 && output.h >= output.w) {
+        num_channels = output.w;
+        num_anchors = output.h;
+        layout = Layout::Cols;
+    } else {
+        __android_log_print(
+            ANDROID_LOG_ERROR,
+            "DoganNcnn",
+            "Unrecognized out0 shape dims=%d c=%d h=%d w=%d",
+            output.dims,
+            output.c,
+            output.h,
+            output.w);
+        return;
+    }
+
+    const int num_class = num_channels - 4;
+    if (num_class <= 0 || num_anchors <= 0) {
+        return;
+    }
+
+    for (int i = 0; i < num_anchors; i++) {
+        float cx;
+        float cy;
+        float bw;
+        float bh;
+        int label = -1;
+        float score = -FLT_MAX;
+
+        if (layout == Layout::Channels) {
+            cx = output.channel(0)[i];
+            cy = output.channel(1)[i];
+            bw = output.channel(2)[i];
+            bh = output.channel(3)[i];
+            for (int c = 0; c < num_class; c++) {
+                const float candidate = output.channel(4 + c)[i];
+                if (candidate > score) {
+                    score = candidate;
+                    label = c;
+                }
+            }
+        } else if (layout == Layout::Rows) {
+            cx = output.row(0)[i];
+            cy = output.row(1)[i];
+            bw = output.row(2)[i];
+            bh = output.row(3)[i];
+            for (int c = 0; c < num_class; c++) {
+                const float candidate = output.row(4 + c)[i];
+                if (candidate > score) {
+                    score = candidate;
+                    label = c;
+                }
+            }
+        } else {
+            const float* row = output.row(i);
+            cx = row[0];
+            cy = row[1];
+            bw = row[2];
+            bh = row[3];
+            for (int c = 0; c < num_class; c++) {
+                const float candidate = row[4 + c];
+                if (candidate > score) {
+                    score = candidate;
+                    label = c;
+                }
+            }
+        }
+
+        if (label < 0 || score < prob_threshold) {
+            continue;
+        }
+
+        ObjectProposal object;
+        object.x0 = cx - bw * 0.5f;
+        object.y0 = cy - bh * 0.5f;
+        object.x1 = cx + bw * 0.5f;
+        object.y1 = cy + bh * 0.5f;
+        object.label = label;
+        object.prob = score;
+        objects.push_back(object);
+    }
+}
+
 }  // namespace
 
 bool YoloV8Detector::load(const std::string& param_path, const std::string& bin_path) {
@@ -213,6 +230,8 @@ bool YoloV8Detector::load(const std::string& param_path, const std::string& bin_
     net_.opt = ncnn::Option();
     net_.opt.num_threads = ncnn::get_big_cpu_count();
     net_.opt.use_vulkan_compute = false;
+    // Unpacked blobs so out0 is readable as h=84,w=8400 (or c=84) without elempack surprises.
+    net_.opt.use_packing_layout = false;
 
     if (net_.load_param(param_path.c_str()) != 0) {
         return false;
@@ -248,21 +267,18 @@ std::vector<DetectionBox> YoloV8Detector::detect(
     }
 
     const float nms_threshold = 0.45f;
-    const std::vector<int> strides = {8, 16, 32};
-    const int max_stride = 32;
+    const int target = target_size_;
 
-    int resized_w = width;
-    int resized_h = height;
-    float scale = 1.f;
-    if (width > height) {
-        scale = static_cast<float>(target_size_) / static_cast<float>(width);
-        resized_w = target_size_;
-        resized_h = static_cast<int>(static_cast<float>(height) * scale);
-    } else {
-        scale = static_cast<float>(target_size_) / static_cast<float>(height);
-        resized_h = target_size_;
-        resized_w = static_cast<int>(static_cast<float>(width) * scale);
-    }
+    // Letterbox into a fixed 640x640 canvas (YOLO26 anchors assume this size).
+    const float scale = std::min(
+        static_cast<float>(target) / static_cast<float>(width),
+        static_cast<float>(target) / static_cast<float>(height));
+    const int resized_w = static_cast<int>(std::round(static_cast<float>(width) * scale));
+    const int resized_h = static_cast<int>(std::round(static_cast<float>(height) * scale));
+    const int wpad = target - resized_w;
+    const int hpad = target - resized_h;
+    const int pad_left = wpad / 2;
+    const int pad_top = hpad / 2;
 
     const std::vector<unsigned char> rgb = argb_to_rgb(argb_pixels, width * height);
     ncnn::Mat input = ncnn::Mat::from_pixels_resize(
@@ -273,16 +289,14 @@ std::vector<DetectionBox> YoloV8Detector::detect(
         resized_w,
         resized_h);
 
-    const int wpad = (resized_w + max_stride - 1) / max_stride * max_stride - resized_w;
-    const int hpad = (resized_h + max_stride - 1) / max_stride * max_stride - resized_h;
     ncnn::Mat padded_input;
     ncnn::copy_make_border(
         input,
         padded_input,
-        hpad / 2,
-        hpad - hpad / 2,
-        wpad / 2,
-        wpad - wpad / 2,
+        pad_top,
+        hpad - pad_top,
+        pad_left,
+        wpad - pad_left,
         ncnn::BORDER_CONSTANT,
         114.f);
 
@@ -297,11 +311,25 @@ std::vector<DetectionBox> YoloV8Detector::detect(
 
     ncnn::Mat output;
     if (extractor.extract("out0", output) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "DoganNcnn", "Failed to extract out0");
         return results;
     }
 
+    static bool logged_shape = false;
+    if (!logged_shape) {
+        logged_shape = true;
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            "DoganNcnn",
+            "out0 shape dims=%d c=%d h=%d w=%d",
+            output.dims,
+            output.c,
+            output.h,
+            output.w);
+    }
+
     std::vector<ObjectProposal> proposals;
-    generate_proposals(output, strides, padded_input, confidence_threshold, proposals);
+    generate_proposals_decoded(output, confidence_threshold, proposals);
     qsort_descent_inplace(proposals);
 
     std::vector<int> picked;
@@ -310,10 +338,10 @@ std::vector<DetectionBox> YoloV8Detector::detect(
     results.reserve(picked.size());
     for (int index : picked) {
         const ObjectProposal& proposal = proposals[index];
-        float x0 = (proposal.x0 - static_cast<float>(wpad) / 2.f) / scale;
-        float y0 = (proposal.y0 - static_cast<float>(hpad) / 2.f) / scale;
-        float x1 = (proposal.x1 - static_cast<float>(wpad) / 2.f) / scale;
-        float y1 = (proposal.y1 - static_cast<float>(hpad) / 2.f) / scale;
+        float x0 = (proposal.x0 - static_cast<float>(pad_left)) / scale;
+        float y0 = (proposal.y0 - static_cast<float>(pad_top)) / scale;
+        float x1 = (proposal.x1 - static_cast<float>(pad_left)) / scale;
+        float y1 = (proposal.y1 - static_cast<float>(pad_top)) / scale;
 
         x0 = std::max(0.f, std::min(x0, static_cast<float>(width - 1)));
         y0 = std::max(0.f, std::min(y0, static_cast<float>(height - 1)));

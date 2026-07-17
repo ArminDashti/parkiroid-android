@@ -5,6 +5,7 @@ plugins {
 }
 
 apply(from = "download_ncnn.gradle")
+apply(from = "download_models.gradle")
 
 android {
     namespace = "com.dogan"

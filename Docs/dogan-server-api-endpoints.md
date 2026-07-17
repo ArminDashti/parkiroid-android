@@ -6,7 +6,7 @@ JSON wire format is **snake_case** unless noted. Bearer token required except wh
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | /auth | No | Login with Android `api_key` or admin username/password |
+| POST | /auth | No | Login with username/password (Android) or legacy `api_key` |
 | POST | /auth/login | No | Web login (email/password) → JWT + user |
 | GET | /auth/me | Yes | Current authenticated user |
 | POST | /auth/logout | Yes | Log out (204) |
@@ -26,7 +26,7 @@ JSON wire format is **snake_case** unless noted. Bearer token required except wh
 | PATCH | /settings | Yes | Patch web preferences |
 | GET | /ai-models | Yes | List registered AI models (admin) |
 | POST | /ai-models | Yes | Register/update NCNN model metadata |
-| GET | /models | Yes | Downloadable NCNN models for Android |
+| GET | /models | Yes | Downloadable NCNN models (Android embeds models; optional for other clients) |
 | GET | /models/:id/param | Yes | Download model.param |
 | GET | /models/:id/bin | Yes | Download model.bin |
 | GET | /sounds | Yes | Downloadable alert sounds for Android |

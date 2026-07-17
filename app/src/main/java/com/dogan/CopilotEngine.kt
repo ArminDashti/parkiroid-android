@@ -11,14 +11,18 @@ class CopilotEngine(
     private var lastCameraAlertAt = 0L
 
     fun onDetections(detections: List<VehicleDetection>, imageWidth: Int, imageHeight: Int, settings: AppSettings) {
-        suddenIntrusionDetector.analyze(detections, imageWidth, imageHeight, settings) {
-            alertManager.trigger(
-                alertType = AlertType.INTRUSION,
-                settings = settings,
-                title = "Road intrusion warning",
-                body = "Vehicle or person entering roadway",
-                channelId = "dogan_copilot",
-            )
+        if (!settings.copilotAlertsEnabled) return
+
+        if (settings.copilotDistanceControlEnabled) {
+            suddenIntrusionDetector.analyze(detections, imageWidth, imageHeight, settings) {
+                alertManager.trigger(
+                    alertType = AlertType.INTRUSION,
+                    settings = settings,
+                    title = "Road intrusion warning",
+                    body = "Vehicle or person entering roadway",
+                    channelId = "dogan_copilot",
+                )
+            }
         }
 
         val speedLimit = signOcrDetector.detectSpeedLimit(detections, settings)
@@ -39,7 +43,7 @@ class CopilotEngine(
         }
 
         val cameras = detections.filter {
-            it.label == "speed_camera" && it.confidence >= settings.minDetectionConfidence
+            it.label == "speed_camera" && it.confidence >= settings.confidenceForMode(OperatingMode.COPILOT)
         }
         if (cameras.isNotEmpty() && speedLimit != null && currentSpeed > speedLimit) {
             val now = System.currentTimeMillis()

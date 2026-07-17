@@ -12,7 +12,7 @@ class SignOcrDetector(
         settings: AppSettings,
     ): Int? {
         val signs = detections.filter {
-            it.label == "speed_limit_sign" && it.confidence >= settings.minDetectionConfidence
+            it.label == "speed_limit_sign" && it.confidence >= settings.confidenceForMode(OperatingMode.COPILOT)
         }
         if (signs.isEmpty()) return lastDetectedLimit
 

@@ -31,10 +31,16 @@ Thumbs.db
 *.jks
 *.keystore
 
+# Local login credentials (dev)
+credentials.txt
+
 # Native build
 .externalNativeBuild/
 .cxx/
 app/src/main/cpp/ncnn-*-android-vulkan/
+
+# Generated at build time from ai-models/ (see app/download_models.gradle)
+app/src/main/assets/
 
 # Profiling
 *.hprof
