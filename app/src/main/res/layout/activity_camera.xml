@@ -28,5 +28,32 @@
             android:id="@+id/detectionOverlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:id="@+id/sensorHud"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="12dp"
+            android:background="#99000000"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/joltValueTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/dogan_on_surface"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/soundValueTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/dogan_on_surface"
+                android:textSize="14sp" />
+        </LinearLayout>
     </FrameLayout>
 </LinearLayout>

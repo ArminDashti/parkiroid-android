@@ -7,13 +7,13 @@
 | **Watchman** | Jolts, people near car, sharp sound alerts |
 | **Spotter** | Watchman + tap-to-watch vehicles; departure alerts |
 | **Copilot** | Road intrusion (when distance control on), overspeed, speed camera warnings (when alerts on) |
-| **OFF** | No capture/detection; Camera button disabled |
+| **OFF** | No capture/detection; enter by re-tapping the active mode |
 
 ## Detection
 
 - YOLO26 NCNN on-device **always**; **person** and **car** only
 - Per-mode float FPS (including 0.125) and minimum confidence (default 0.7)
-- Bounding boxes on Camera eye and history frames; Spotter tap-to-watch on Camera
+- Bounding boxes on Preview and history frames; Spotter tap-to-watch on Preview; Watchman Preview shows jolt/sound HUD
 
 ## Telemetry
 
@@ -35,13 +35,14 @@ Sent every `telemetry_interval_sec` when connected:
 
 - Per-mode processed images/video under `filesDir/detection-media/{mode}/`
 - Local **frame history** ring buffer (`FrameHistoryStore`) with detections JSON; tap a frame to open viewer with previous/next
-- General Settings shows usage and flush controls
+- General Settings: sync interval, keep alive, keep logs, Logs button
+- Flush history / Flush logs live on Spotter, Watchman, Recording, Connectivity sections
 
 ## UI
 
 - Dark Material harmony theme
-- Main: button grid hub (no preview); larger buttons (Camera 80dp, others 72dp)
-- CameraActivity: live eye/preview
-- Section settings: Connectivity / Recording / Copilot / Spotter / Watchman / General
-- HistoryFramesActivity + HistoryFrameViewerActivity from Copilot / Spotter / Watchman settings
+- Main: mode|gear rows, Connectivity|gear, Record|Settings, Logs|Exit; re-tap mode → OFF
+- CameraActivity: Preview from section settings (bounding boxes; Watchman HUD)
+- Section settings: Configure → Retention → Browse → Danger
+- HistoryFramesActivity + HistoryFrameViewerActivity from Spotter / Watchman / Recording / Copilot
 - AI model picker on Copilot, Spotter, and Watchman (shared `ai_model`)

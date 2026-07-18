@@ -1,6 +1,9 @@
 package com.dogan
 
 import android.os.Bundle
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.view.PreviewView
@@ -17,19 +20,28 @@ class CameraActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
     private lateinit var detectionOverlay: DetectionOverlayView
+    private lateinit var sensorHud: LinearLayout
+    private lateinit var joltValueTxt: TextView
+    private lateinit var soundValueTxt: TextView
+    private var showSensors = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
+        showSensors = intent.getBooleanExtra(EXTRA_SHOW_SENSORS, false)
 
         findViewById<MaterialToolbar>(R.id.cameraToolbar).apply {
-            title = getString(R.string.camera_button)
+            title = getString(R.string.preview_title)
             setNavigationOnClickListener { finish() }
             setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
         }
 
         previewView = findViewById(R.id.previewView)
         detectionOverlay = findViewById(R.id.detectionOverlay)
+        sensorHud = findViewById(R.id.sensorHud)
+        joltValueTxt = findViewById(R.id.joltValueTxt)
+        soundValueTxt = findViewById(R.id.soundValueTxt)
+        sensorHud.visibility = if (showSensors) View.VISIBLE else View.GONE
 
         DetectionOverlayBridge.listener = { detections, imageWidth, imageHeight ->
             runOnUiThread {
@@ -40,6 +52,15 @@ class CameraActivity : AppCompatActivity() {
                 }
             }
         }
+
+        SensorHudBridge.listener = { jolt, sound ->
+            runOnUiThread {
+                joltValueTxt.text = getString(R.string.preview_jolt_value, jolt)
+                soundValueTxt.text = getString(R.string.preview_sound_value, sound)
+            }
+        }
+        joltValueTxt.text = getString(R.string.preview_jolt_value, SensorHudBridge.joltMps2)
+        soundValueTxt.text = getString(R.string.preview_sound_value, SensorHudBridge.soundRms)
 
         detectionOverlay.onDetectionTapped = { detection, imageWidth, imageHeight ->
             DetectionTapBridge.onTapped(detection.label, detection.bounds, imageWidth, imageHeight)
@@ -63,6 +84,8 @@ class CameraActivity : AppCompatActivity() {
                         return@collect
                     }
                     detectionOverlay.setTapToWatchEnabled(settings.operatingMode == OperatingMode.SPOTTER)
+                    val sensorsVisible = showSensors || settings.operatingMode == OperatingMode.WATCHER
+                    sensorHud.visibility = if (sensorsVisible) View.VISIBLE else View.GONE
                     bindPreview(settings)
                 }
             }
@@ -85,6 +108,7 @@ class CameraActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         DetectionOverlayBridge.listener = null
+        SensorHudBridge.listener = null
         detectionOverlay.clear()
         DoganCamera.clearStatusListener()
         super.onDestroy()
@@ -106,5 +130,9 @@ class CameraActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.camera_error, Toast.LENGTH_LONG).show()
             },
         )
+    }
+
+    companion object {
+        const val EXTRA_SHOW_SENSORS = "show_sensors"
     }
 }

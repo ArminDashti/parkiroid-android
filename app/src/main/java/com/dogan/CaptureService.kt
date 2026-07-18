@@ -176,6 +176,7 @@ class CaptureService : Service(), LifecycleOwner {
         alertManager.release()
         DetectionTapBridge.handler = null
         DetectionOverlayBridge.clear()
+        SensorHudBridge.clear()
         ncnnObjectDetector.close()
         wakeLock?.release()
         wakeLock = null
@@ -228,6 +229,7 @@ class CaptureService : Service(), LifecycleOwner {
             }
             vehicleMotionDetector.joltSensitivity = currentSettings.joltSensitivity
             audioCapture.soundSensitivity = currentSettings.soundSensitivity
+            SensorHudBridge.publish(vehicleMotionDetector.lastMagnitudeMps2, audioCapture.currentRms)
             val fps = currentSettings.fpsForMode(currentSettings.operatingMode).coerceAtLeast(0.001f)
             val minInterval = (1000f / fps).toLong().coerceAtLeast(1L)
             if (now - lastAnalysisAt < minInterval) return

@@ -20,9 +20,9 @@ Snapshot of where the product stands today and what to expect when planning pilo
 - [x] Cloud object detection (upload frames for server-side analysis)
 - [x] Dedicated section Settings screens (Connectivity, Recording, modes, General)
 - [x] Persistent notification while monitoring
-- [x] Camera eye activity for live preview (not on main hub)
+- [x] Camera eye activity for live preview (from section Preview, not on main hub)
 - [x] Local history frames gallery with bounding boxes
-- [x] Mode selector including OFF on main screen
+- [x] Mode selection on main screen; re-tap active mode → OFF
 
 ## What is not included (yet)
 

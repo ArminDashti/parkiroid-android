@@ -15,6 +15,10 @@ class VehicleMotionDetector(
     @Volatile
     var joltSensitivity: SensitivityLevel = SensitivityLevel.MEDIUM
 
+    @Volatile
+    var lastMagnitudeMps2: Float = 0f
+        private set
+
     private var usesLinearAcceleration = true
     private val gravityEstimate = FloatArray(3)
     private var baselineMagnitude = 0f
@@ -65,6 +69,7 @@ class VehicleMotionDetector(
 
         previousMagnitude = magnitude
         previousTimestampNanos = event.timestamp
+        lastMagnitudeMps2 = magnitude
 
         val nowMs = System.currentTimeMillis()
         if (nowMs - lastTriggerAtMs < COOLDOWN_MS) return
@@ -100,6 +105,7 @@ class VehicleMotionDetector(
         baselineMagnitude = 0f
         previousMagnitude = 0f
         previousTimestampNanos = 0L
+        lastMagnitudeMps2 = 0f
         gravityEstimate.fill(0f)
     }
 

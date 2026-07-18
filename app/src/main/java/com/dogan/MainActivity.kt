@@ -3,6 +3,7 @@ package com.dogan
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Process
 import android.widget.Toast
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
 
-/** Main hub: mode selection and navigation to camera / settings / logs. */
+/** Main hub: mode selection and navigation to settings / logs. */
 class MainActivity : AppCompatActivity() {
     private val settingsStore by lazy { SettingsStore(this) }
 
@@ -28,11 +29,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private lateinit var cameraBtn: MaterialButton
     private lateinit var modeCopilotBtn: MaterialButton
     private lateinit var modeSpotterBtn: MaterialButton
     private lateinit var modeWatchmanBtn: MaterialButton
-    private lateinit var modeOffBtn: MaterialButton
+    private lateinit var connectivityBtn: MaterialButton
 
     private var monitoringActive = false
     private var currentMode: OperatingMode = OperatingMode.OFF
@@ -43,29 +43,17 @@ class MainActivity : AppCompatActivity() {
         AppLogger.init(this)
         requestMissingPermissions()
 
-        cameraBtn = findViewById(R.id.cameraBtn)
         modeCopilotBtn = findViewById(R.id.modeCopilotBtn)
         modeSpotterBtn = findViewById(R.id.modeSpotterBtn)
         modeWatchmanBtn = findViewById(R.id.modeWatchmanBtn)
-        modeOffBtn = findViewById(R.id.modeOffBtn)
+        connectivityBtn = findViewById(R.id.connectivityBtn)
 
-        cameraBtn.setOnClickListener {
-            if (currentMode == OperatingMode.OFF) {
-                Toast.makeText(this, R.string.camera_disabled_off, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            startActivity(Intent(this, CameraActivity::class.java))
-        }
-        modeCopilotBtn.setOnClickListener { selectMode(OperatingMode.COPILOT) }
-        modeSpotterBtn.setOnClickListener { selectMode(OperatingMode.SPOTTER) }
-        modeWatchmanBtn.setOnClickListener { selectMode(OperatingMode.WATCHER) }
-        modeOffBtn.setOnClickListener { selectMode(OperatingMode.OFF) }
+        modeCopilotBtn.setOnClickListener { toggleOrSelectMode(OperatingMode.COPILOT) }
+        modeSpotterBtn.setOnClickListener { toggleOrSelectMode(OperatingMode.SPOTTER) }
+        modeWatchmanBtn.setOnClickListener { toggleOrSelectMode(OperatingMode.WATCHER) }
 
         findViewById<MaterialButton>(R.id.copilotSettingsBtn).setOnClickListener {
             openSettings(SettingsActivity.SECTION_COPILOT)
-        }
-        findViewById<MaterialButton>(R.id.recordingSettingsBtn).setOnClickListener {
-            openSettings(SettingsActivity.SECTION_RECORDING)
         }
         findViewById<MaterialButton>(R.id.spotterSettingsBtn).setOnClickListener {
             openSettings(SettingsActivity.SECTION_SPOTTER)
@@ -73,8 +61,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.watchmanSettingsBtn).setOnClickListener {
             openSettings(SettingsActivity.SECTION_WATCHMAN)
         }
-        findViewById<MaterialButton>(R.id.connectivityBtn).setOnClickListener {
+        connectivityBtn.setOnClickListener {
             openSettings(SettingsActivity.SECTION_CONNECTIVITY)
+        }
+        findViewById<MaterialButton>(R.id.connectivitySettingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_CONNECTIVITY)
+        }
+        findViewById<MaterialButton>(R.id.recordingSettingsBtn).setOnClickListener {
+            openSettings(SettingsActivity.SECTION_RECORDING)
         }
         findViewById<MaterialButton>(R.id.settingsBtn).setOnClickListener {
             openSettings(SettingsActivity.SECTION_GENERAL)
@@ -87,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ServerConnectionManager.status.collect { status ->
+                    updateConnectivityButton(status)
                     when (status) {
                         ConnectionStatus.CONNECTED -> {
                             ServerSettingsSync.start(this@MainActivity)
@@ -108,7 +103,6 @@ class MainActivity : AppCompatActivity() {
                 settingsStore.settingsFlow.collect { settings ->
                     currentMode = settings.operatingMode
                     updateModeButtons(settings.operatingMode)
-                    updateCameraEnabled(settings.operatingMode)
                     if (settings.operatingMode == OperatingMode.OFF) {
                         stopMonitoringIfNeeded()
                     } else if (ServerConnectionManager.isConnected() || settings.objectDetectionOnDevice) {
@@ -119,12 +113,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Selects [mode], or turns OFF if that mode is already active. */
+    private fun toggleOrSelectMode(mode: OperatingMode) {
+        if (currentMode == mode) {
+            selectMode(OperatingMode.OFF)
+        } else {
+            selectMode(mode)
+        }
+    }
+
     private fun selectMode(mode: OperatingMode) {
         lifecycleScope.launch {
             SettingsPublisher.pushOperatingMode(this@MainActivity, mode)
             currentMode = mode
             updateModeButtons(mode)
-            updateCameraEnabled(mode)
             if (mode == OperatingMode.OFF) {
                 stopMonitoringIfNeeded()
             } else {
@@ -137,7 +139,6 @@ class MainActivity : AppCompatActivity() {
         styleModeButton(modeCopilotBtn, mode == OperatingMode.COPILOT)
         styleModeButton(modeSpotterBtn, mode == OperatingMode.SPOTTER)
         styleModeButton(modeWatchmanBtn, mode == OperatingMode.WATCHER)
-        styleModeButton(modeOffBtn, mode == OperatingMode.OFF)
     }
 
     private fun styleModeButton(button: MaterialButton, selected: Boolean) {
@@ -149,10 +150,14 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun updateCameraEnabled(mode: OperatingMode) {
-        val enabled = mode != OperatingMode.OFF
-        cameraBtn.isEnabled = enabled
-        cameraBtn.alpha = if (enabled) 1f else 0.45f
+    private fun updateConnectivityButton(status: ConnectionStatus) {
+        val connected = status == ConnectionStatus.CONNECTED
+        connectivityBtn.text = getString(
+            if (connected) R.string.connected_label else R.string.disconnected_label,
+        )
+        connectivityBtn.setBackgroundColor(
+            Color.parseColor(if (connected) "#2E7D32" else "#C62828"),
+        )
     }
 
     private fun openSettings(section: String) {
@@ -179,7 +184,7 @@ class MainActivity : AppCompatActivity() {
             val settings = settingsStore.settingsFlow.first()
             currentMode = settings.operatingMode
             updateModeButtons(settings.operatingMode)
-            updateCameraEnabled(settings.operatingMode)
+            updateConnectivityButton(ServerConnectionManager.status.value)
             if (settings.operatingMode != OperatingMode.OFF) {
                 ensureMonitoringStarted()
             }

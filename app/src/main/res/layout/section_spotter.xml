@@ -11,9 +11,12 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <include
-            android:id="@+id/fpsStepper"
-            layout="@layout/include_fps_stepper" />
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0dp"
+            android:text="@string/section_configure" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
@@ -30,13 +33,17 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/history_retention_frames">
+            android:hint="@string/min_confidence">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/historyRetentionInput"
+                android:id="@+id/minConfidenceInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="number" />
+                android:inputType="numberDecimal" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <include
+            android:id="@+id/fpsStepper"
+            layout="@layout/include_fps_stepper" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
@@ -50,24 +57,86 @@
                 android:inputType="none" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/section_retention" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/min_confidence">
+            android:hint="@string/keep_frames_hours">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/minConfidenceInput"
+                android:id="@+id/keepFramesInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="numberDecimal" />
+                android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/log_retention_days">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/logRetentionInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/section_browse" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/previewBtn"
+            style="@style/Widget.Dogan.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/preview_button"
+            app:icon="@drawable/ic_camera" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/historyFramesBtn"
             style="@style/Widget.Dogan.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/history_frames"
+            android:layout_marginTop="8dp"
+            android:text="@string/history_button"
             app:icon="@drawable/ic_history" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/logsBtn"
+            style="@style/Widget.Dogan.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/logs_title"
+            app:icon="@drawable/ic_logs" />
+
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/section_danger" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/flushHistoryBtn"
+            style="@style/Widget.Dogan.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/flush_history" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/flushLogsBtn"
+            style="@style/Widget.Dogan.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/flush_logs" />
     </LinearLayout>
 </ScrollView>

@@ -16,7 +16,7 @@ You will need:
 
 ### 1. Install and open the app
 
-Open Dogan. The main screen is a button hub (modes, settings shortcuts, Logs, Exit).
+Open Dogan. The main screen is a button hub: mode rows (Copilot / Spotter / Watchman with settings gears), Connectivity, Record, Settings, Logs, Exit.
 
 ### 2. Grant permissions
 
@@ -24,18 +24,17 @@ When prompted, allow **Camera**, microphone, and location as requested.
 
 ### 3. Configure Connectivity
 
-Tap **Connectivity** and enter:
+Tap **Connectivity** (or its gear) and enter:
 
 - **Username / password** — server login (defaults match repo-root `credentials.txt`: `armin` / `dogan123`)
-- **API endpoint / port** — Dogan server host (example: `192.168.1.10` + `8090`, or production host + `443`)
-- **Stream endpoint / port** — LiveKit host (often same host, port `7880`)
-- **Telemetry interval**
+- **API URL** — Dogan server as `host:port` (example: `192.168.1.10:8090`)
+- **Stream URL** — LiveKit as `host:port` (often same host, port `7880`)
 
-Above the Connect button you see **ping**, **API**, and **LiveKit** status. The button itself is only **Connected** or **Disconnected**. Failures show an error message near the button. The same username/password unlocks both API and LiveKit (shared bearer token). Changes save automatically.
+Above the Connect button you see **ping**, **API**, and **LiveKit** status. The button itself is only **Connected** or **Disconnected**. The app starts **disconnected**; connect manually. Failures show an error near the button. Changes save automatically.
 
 ### 4. Pick a mode
 
-On the main screen, select **Copilot**, **Spotter**, or **Watchman**. Choose **OFF** to stop monitoring. Open **Camera** to verify the angle (disabled while OFF).
+On the main screen, tap **Copilot**, **Spotter**, or **Watchman**. Tap the active mode again to turn **OFF**. Open **Preview** from that mode’s settings gear to verify the camera angle (bounding boxes; Watchman also shows jolt/sound).
 
 ## Daily operation
 
@@ -47,13 +46,13 @@ On the main screen, select **Copilot**, **Spotter**, or **Watchman**. Choose **O
 
 ### Stop monitoring
 
-Select **OFF** on the main mode row, or tap **Exit** to close the app completely.
+Select the active mode again (re-tap) to turn **OFF**, or tap **Exit** to close the app completely.
 
 ## Recommended practices
 
 | Practice | Reason |
 |----------|--------|
-| Use **Camera** to check framing before leaving the vehicle | Ensures the monitored area is in view |
+| Use **Preview** in mode settings to check framing before leaving the vehicle | Ensures the monitored area is in view |
 | Keep the phone **plugged in** for long parking sessions | Sustains monitoring without draining the battery |
 | Confirm **Connectivity** before leaving | Avoids silent upload failures |
 | Review **Recording** retention (max 12 hours) | Limits local disk use |

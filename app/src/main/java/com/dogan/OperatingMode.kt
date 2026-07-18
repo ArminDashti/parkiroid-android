@@ -25,7 +25,7 @@ enum class OperatingMode(val displayName: String) {
                 "copilot" -> COPILOT
                 else -> entries.firstOrNull {
                     it.name.equals(value, ignoreCase = true) || it.toStoredValue() == normalized
-                } ?: WATCHER
+                } ?: OFF
             }
         }
     }

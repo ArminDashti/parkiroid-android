@@ -97,19 +97,13 @@ class SettingsActivity : AppCompatActivity() {
         val connectionErrorTxt = findViewById<TextView>(R.id.connectionErrorTxt)
         val username = findViewById<TextInputEditText>(R.id.usernameInput)
         val password = findViewById<TextInputEditText>(R.id.passwordInput)
-        val apiEndpoint = findViewById<TextInputEditText>(R.id.apiEndpointInput)
-        val apiPort = findViewById<TextInputEditText>(R.id.apiPortInput)
-        val streamEndpoint = findViewById<TextInputEditText>(R.id.streamEndpointInput)
-        val streamPort = findViewById<TextInputEditText>(R.id.streamPortInput)
-        val telemetryInterval = findViewById<TextInputEditText>(R.id.telemetryIntervalInput)
+        val apiUrl = findViewById<TextInputEditText>(R.id.apiUrlInput)
+        val streamUrl = findViewById<TextInputEditText>(R.id.streamUrlInput)
 
         username.setText(settings.username)
         password.setText(settings.password)
-        apiEndpoint.setText(settings.apiEndpoint)
-        apiPort.setText(settings.apiPort.toString())
-        streamEndpoint.setText(settings.streamEndpoint)
-        streamPort.setText(settings.streamPort.toString())
-        telemetryInterval.setText(settings.telemetryIntervalSec.toString())
+        apiUrl.setText(formatHostPort(settings.apiEndpoint, settings.apiPort))
+        streamUrl.setText(formatHostPort(settings.streamEndpoint, settings.streamPort))
 
         fun refreshStatusUi() {
             updateConnectionButton(connectionBtn, ServerConnectionManager.status.value)
@@ -157,26 +151,30 @@ class SettingsActivity : AppCompatActivity() {
         bindText(password) { text ->
             persist(mapOf("password" to text)) { it.copy(password = text) }
         }
-        bindText(apiEndpoint) { text ->
-            persist(mapOf("api_endpoint" to text)) { it.copy(apiEndpoint = text) }
+        bindText(apiUrl) { text ->
+            val parsed = parseHostPort(text, SettingsStore.DEFAULT_API_ENDPOINT, SettingsStore.DEFAULT_API_PORT)
+            persist(
+                mapOf("api_endpoint" to parsed.host, "api_port" to parsed.port),
+            ) { it.copy(apiEndpoint = parsed.host, apiPort = parsed.port) }
         }
-        bindText(apiPort) { text ->
-            val port = text.toIntOrNull() ?: SettingsStore.DEFAULT_API_PORT
-            persist(mapOf("api_port" to port)) { it.copy(apiPort = port) }
+        bindText(streamUrl) { text ->
+            val parsed = parseHostPort(text, SettingsStore.DEFAULT_API_ENDPOINT, SettingsStore.DEFAULT_STREAM_PORT)
+            persist(
+                mapOf("stream_endpoint" to parsed.host, "stream_port" to parsed.port),
+            ) { it.copy(streamEndpoint = parsed.host, streamPort = parsed.port) }
         }
-        bindText(streamEndpoint) { text ->
-            persist(mapOf("stream_endpoint" to text)) { it.copy(streamEndpoint = text) }
+
+        bindLogRetention(settings)
+        bindLogsButton()
+        findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
+            confirmFlush(getString(R.string.flush_history)) {
+                FrameHistoryStore(this).flush()
+                diskUsageManager.flushSpotter()
+                diskUsageManager.flushWatcher()
+                diskUsageManager.flushCopilot()
+            }
         }
-        bindText(streamPort) { text ->
-            val port = text.toIntOrNull() ?: SettingsStore.DEFAULT_STREAM_PORT
-            persist(mapOf("stream_port" to port)) { it.copy(streamPort = port) }
-        }
-        bindText(telemetryInterval) { text ->
-            val value = SettingsStore.normalizeTelemetryIntervalSec(
-                text.toIntOrNull() ?: SettingsStore.DEFAULT_TELEMETRY_INTERVAL_SEC,
-            )
-            persist(mapOf("telemetry_interval_sec" to value)) { it.copy(telemetryIntervalSec = value) }
-        }
+        bindFlushLogsButton()
     }
 
     private fun updateConnectivityStatusPanel(
@@ -228,14 +226,12 @@ class SettingsActivity : AppCompatActivity() {
         val chunk = findViewById<TextInputEditText>(R.id.recordingChunkInput)
         val quality = findViewById<AutoCompleteTextView>(R.id.recordingQualityInput)
         val sound = findViewById<SwitchMaterial>(R.id.recordingSoundSwitch)
-        val retention = findViewById<TextInputEditText>(R.id.recordingRetentionInput)
 
         chunk.setText(settings.recordingChunkMinutes.toString())
         setupQualityDropdown(quality, settings.recordingQuality) { q ->
             persist(mapOf("recording_quality" to q.toStoredValue())) { it.copy(recordingQuality = q) }
         }
         sound.isChecked = settings.recordingSoundEnabled
-        retention.setText(settings.recordingRetentionHours.toString())
 
         bindText(chunk) { text ->
             val value = SettingsStore.normalizeVideoChunkMinutes(
@@ -247,12 +243,24 @@ class SettingsActivity : AppCompatActivity() {
             if (suppressAutoSave) return@setOnCheckedChangeListener
             persist(mapOf("recording_sound_enabled" to checked)) { it.copy(recordingSoundEnabled = checked) }
         }
-        bindText(retention) { text ->
-            val value = SettingsStore.normalizeRecordingRetentionHours(
-                text.toIntOrNull() ?: SettingsStore.DEFAULT_RECORDING_RETENTION_HOURS,
-            )
-            persist(mapOf("recording_retention_hours" to value)) { it.copy(recordingRetentionHours = value) }
+
+        bindLogRetention(settings)
+        findViewById<MaterialButton>(R.id.previewBtn).setOnClickListener {
+            openPreview(preferMode = null, showSensors = false)
         }
+        findViewById<MaterialButton>(R.id.historyFramesBtn).setOnClickListener {
+            lifecycleScope.launch {
+                val mode = settingsStore.settingsFlow.first().operatingMode
+                openHistory(if (mode == OperatingMode.OFF) OperatingMode.COPILOT else mode)
+            }
+        }
+        bindLogsButton()
+        findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
+            confirmFlush(getString(R.string.flush_history)) {
+                FrameHistoryStore(this).flush()
+            }
+        }
+        bindFlushLogsButton()
     }
 
     private fun bindCopilot(settings: AppSettings) {
@@ -325,27 +333,21 @@ class SettingsActivity : AppCompatActivity() {
             persistMode("spotter", mapOf("spotter_fps" to fps)) { m -> m.copy(fps = fps) }
         }
         val aiModel = findViewById<AutoCompleteTextView>(R.id.aiModelInput)
-        val history = findViewById<TextInputEditText>(R.id.historyRetentionInput)
         val frameQuality = findViewById<AutoCompleteTextView>(R.id.frameQualityInput)
         val confidence = findViewById<TextInputEditText>(R.id.minConfidenceInput)
+        val keepFrames = findViewById<TextInputEditText>(R.id.keepFramesInput)
+
         setupDropdown(aiModel, AiModel.all.map { it.displayName })
         aiModel.setText(settings.aiModel.displayName, false)
-        history.setText(mode.historyRetentionFrames.toString())
         setupQualityDropdown(frameQuality, mode.frameQuality) { q ->
             persistMode("spotter", mapOf("spotter_frame_quality" to q.toStoredValue())) { m -> m.copy(frameQuality = q) }
         }
         confidence.setText(mode.minConfidence.toString())
+        keepFrames.setText(mode.imageRetentionHours.toString())
+
         aiModel.setOnItemClickListener { _, _, position, _ ->
             val model = AiModel.all.getOrElse(position) { AiModel.YOLO26_NANO }
             persist(mapOf("ai_model" to model.toStoredValue())) { it.copy(aiModel = model) }
-        }
-        bindText(history) { text ->
-            val value = SettingsStore.normalizeHistoryFrames(
-                text.toIntOrNull() ?: SettingsStore.DEFAULT_HISTORY_RETENTION_FRAMES,
-            )
-            persistMode("spotter", mapOf("spotter_history_retention_frames" to value)) {
-                it.copy(historyRetentionFrames = value)
-            }
         }
         bindText(confidence) { text ->
             val value = SettingsStore.normalizeConfidence(
@@ -353,9 +355,30 @@ class SettingsActivity : AppCompatActivity() {
             )
             persistMode("spotter", mapOf("spotter_min_confidence" to value)) { it.copy(minConfidence = value) }
         }
+        bindText(keepFrames) { text ->
+            val value = SettingsStore.normalizeRetentionHours(
+                text.toIntOrNull() ?: SettingsStore.DEFAULT_MEDIA_RETENTION_HOURS,
+            )
+            persistMode("spotter", mapOf("spotter_image_retention_hours" to value)) {
+                it.copy(imageRetentionHours = value)
+            }
+        }
+
+        bindLogRetention(settings)
+        findViewById<MaterialButton>(R.id.previewBtn).setOnClickListener {
+            openPreview(preferMode = OperatingMode.SPOTTER, showSensors = false)
+        }
         findViewById<MaterialButton>(R.id.historyFramesBtn).setOnClickListener {
             openHistory(OperatingMode.SPOTTER)
         }
+        bindLogsButton()
+        findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
+            confirmFlush(OperatingMode.SPOTTER.displayName) {
+                diskUsageManager.flushSpotter()
+                FrameHistoryStore(this).flush(OperatingMode.SPOTTER)
+            }
+        }
+        bindFlushLogsButton()
     }
 
     private fun bindWatchman(settings: AppSettings) {
@@ -365,15 +388,14 @@ class SettingsActivity : AppCompatActivity() {
             persistMode("watcher", mapOf("watcher_fps" to fps)) { m -> m.copy(fps = fps) }
         }
         val aiModel = findViewById<AutoCompleteTextView>(R.id.aiModelInput)
-        val history = findViewById<TextInputEditText>(R.id.historyRetentionInput)
         val jolt = findViewById<AutoCompleteTextView>(R.id.joltSensitivityInput)
         val sound = findViewById<AutoCompleteTextView>(R.id.soundSensitivityInput)
         val frameQuality = findViewById<AutoCompleteTextView>(R.id.frameQualityInput)
         val confidence = findViewById<TextInputEditText>(R.id.minConfidenceInput)
+        val keepFrames = findViewById<TextInputEditText>(R.id.keepFramesInput)
 
         setupDropdown(aiModel, AiModel.all.map { it.displayName })
         aiModel.setText(settings.aiModel.displayName, false)
-        history.setText(mode.historyRetentionFrames.toString())
         setupDropdown(jolt, SensitivityLevel.all.map { it.displayName })
         jolt.setText(settings.joltSensitivity.displayName, false)
         setupDropdown(sound, SensitivityLevel.all.map { it.displayName })
@@ -382,18 +404,11 @@ class SettingsActivity : AppCompatActivity() {
             persistMode("watcher", mapOf("watcher_frame_quality" to q.toStoredValue())) { m -> m.copy(frameQuality = q) }
         }
         confidence.setText(mode.minConfidence.toString())
+        keepFrames.setText(mode.imageRetentionHours.toString())
 
         aiModel.setOnItemClickListener { _, _, position, _ ->
             val model = AiModel.all.getOrElse(position) { AiModel.YOLO26_NANO }
             persist(mapOf("ai_model" to model.toStoredValue())) { it.copy(aiModel = model) }
-        }
-        bindText(history) { text ->
-            val value = SettingsStore.normalizeHistoryFrames(
-                text.toIntOrNull() ?: SettingsStore.DEFAULT_HISTORY_RETENTION_FRAMES,
-            )
-            persistMode("watcher", mapOf("watcher_history_retention_frames" to value)) {
-                it.copy(historyRetentionFrames = value)
-            }
         }
         jolt.setOnItemClickListener { _, _, position, _ ->
             val level = SensitivityLevel.all.getOrElse(position) { SensitivityLevel.MEDIUM }
@@ -409,27 +424,38 @@ class SettingsActivity : AppCompatActivity() {
             )
             persistMode("watcher", mapOf("watcher_min_confidence" to value)) { it.copy(minConfidence = value) }
         }
+        bindText(keepFrames) { text ->
+            val value = SettingsStore.normalizeRetentionHours(
+                text.toIntOrNull() ?: SettingsStore.DEFAULT_MEDIA_RETENTION_HOURS,
+            )
+            persistMode("watcher", mapOf("watcher_image_retention_hours" to value)) {
+                it.copy(imageRetentionHours = value)
+            }
+        }
+
+        bindLogRetention(settings)
+        findViewById<MaterialButton>(R.id.previewBtn).setOnClickListener {
+            openPreview(preferMode = OperatingMode.WATCHER, showSensors = true)
+        }
         findViewById<MaterialButton>(R.id.historyFramesBtn).setOnClickListener {
             openHistory(OperatingMode.WATCHER)
         }
+        bindLogsButton()
+        findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
+            confirmFlush(OperatingMode.WATCHER.displayName) {
+                diskUsageManager.flushWatcher()
+                FrameHistoryStore(this).flush(OperatingMode.WATCHER)
+            }
+        }
+        bindFlushLogsButton()
     }
 
     private fun bindGeneral(settings: AppSettings) {
         val sync = findViewById<TextInputEditText>(R.id.syncIntervalInput)
-        val camera = findViewById<AutoCompleteTextView>(R.id.cameraInput)
         val keepAlive = findViewById<TextInputEditText>(R.id.screenOnIntervalInput)
-        val logRetention = findViewById<TextInputEditText>(R.id.logRetentionInput)
-        val boxes = findViewById<SwitchMaterial>(R.id.showBoundingBoxesSwitch)
 
         sync.setText(settings.settingsSyncIntervalSec.toString())
-        setupDropdown(
-            camera,
-            listOf(getString(R.string.camera_rear), getString(R.string.camera_front), getString(R.string.camera_both)),
-        )
-        camera.setText(cameraLabel(settings.activeCamera), false)
         keepAlive.setText(settings.screenOnIntervalMin.toString())
-        logRetention.setText(settings.logRetentionDays.toString())
-        boxes.isChecked = settings.showBoundingBoxes
 
         bindText(sync) { text ->
             val value = SettingsStore.normalizeSettingsSyncIntervalSec(
@@ -437,58 +463,62 @@ class SettingsActivity : AppCompatActivity() {
             )
             persist(mapOf("settings_sync_interval_sec" to value)) { it.copy(settingsSyncIntervalSec = value) }
         }
-        camera.setOnItemClickListener { _, _, position, _ ->
-            val facing = when (position) {
-                1 -> CameraFacing.FRONT
-                2 -> CameraFacing.BOTH
-                else -> CameraFacing.REAR
-            }
-            persist(mapOf("active_camera" to facing.toStoredValue())) { it.copy(activeCamera = facing) }
-        }
         bindText(keepAlive) { text ->
             val value = SettingsStore.normalizeScreenOnIntervalMin(
                 text.toIntOrNull() ?: SettingsStore.DEFAULT_SCREEN_ON_INTERVAL_MIN,
             )
             persist(mapOf("screen_on_interval_min" to value)) { it.copy(screenOnIntervalMin = value) }
         }
+
+        bindLogRetention(settings)
+        bindLogsButton()
+    }
+
+    private fun bindLogRetention(settings: AppSettings) {
+        val logRetention = findViewById<TextInputEditText>(R.id.logRetentionInput) ?: return
+        logRetention.setText(settings.logRetentionDays.toString())
         bindText(logRetention) { text ->
             val value = SettingsStore.normalizeLogRetentionDays(
                 text.toIntOrNull() ?: SettingsStore.DEFAULT_LOG_RETENTION_DAYS,
             )
             persist(mapOf("log_retention_days" to value)) { it.copy(logRetentionDays = value) }
         }
-        boxes.setOnCheckedChangeListener { _, checked ->
-            if (suppressAutoSave) return@setOnCheckedChangeListener
-            persist(mapOf("show_bounding_boxes" to checked)) { it.copy(showBoundingBoxes = checked) }
-        }
+    }
 
-        refreshDiskUsage()
-        findViewById<MaterialButton>(R.id.flushSpotterBtn).setOnClickListener {
-            confirmFlush(OperatingMode.SPOTTER.displayName) {
-                diskUsageManager.flushSpotter()
-                FrameHistoryStore(this).flush(OperatingMode.SPOTTER)
-                refreshDiskUsage()
-            }
+    private fun bindLogsButton() {
+        findViewById<MaterialButton>(R.id.logsBtn)?.setOnClickListener {
+            startActivity(Intent(this, LogsActivity::class.java))
         }
-        findViewById<MaterialButton>(R.id.flushWatcherBtn).setOnClickListener {
-            confirmFlush(OperatingMode.WATCHER.displayName) {
-                diskUsageManager.flushWatcher()
-                FrameHistoryStore(this).flush(OperatingMode.WATCHER)
-                refreshDiskUsage()
-            }
-        }
-        findViewById<MaterialButton>(R.id.flushCopilotBtn).setOnClickListener {
-            confirmFlush(OperatingMode.COPILOT.displayName) {
-                diskUsageManager.flushCopilot()
-                FrameHistoryStore(this).flush(OperatingMode.COPILOT)
-                refreshDiskUsage()
-            }
-        }
-        findViewById<MaterialButton>(R.id.flushLogsBtn).setOnClickListener {
+    }
+
+    private fun bindFlushLogsButton() {
+        findViewById<MaterialButton>(R.id.flushLogsBtn)?.setOnClickListener {
             confirmFlush("Logs") {
                 diskUsageManager.flushLogs()
-                refreshDiskUsage()
             }
+        }
+    }
+
+    private fun openPreview(preferMode: OperatingMode?, showSensors: Boolean) {
+        lifecycleScope.launch {
+            val settings = settingsStore.settingsFlow.first()
+            val target = when {
+                preferMode != null && preferMode != OperatingMode.OFF -> preferMode
+                settings.operatingMode != OperatingMode.OFF -> settings.operatingMode
+                else -> OperatingMode.COPILOT
+            }
+            if (settings.operatingMode != target) {
+                SettingsPublisher.pushOperatingMode(this@SettingsActivity, target)
+            }
+            startForegroundService(
+                Intent(this@SettingsActivity, CaptureService::class.java).apply {
+                    action = CaptureService.ACTION_START
+                },
+            )
+            startActivity(
+                Intent(this@SettingsActivity, CameraActivity::class.java)
+                    .putExtra(CameraActivity.EXTRA_SHOW_SENSORS, showSensors),
+            )
         }
     }
 
@@ -614,23 +644,23 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun refreshDiskUsage() {
-        val usage = diskUsageManager.summarize()
-        findViewById<TextView>(R.id.spotterUsageTxt).text =
-            getString(R.string.disk_usage_spotter, DiskUsageManager.formatBytes(usage.spotterBytes))
-        findViewById<TextView>(R.id.watcherUsageTxt).text =
-            getString(R.string.disk_usage_watchman, DiskUsageManager.formatBytes(usage.watcherBytes))
-        findViewById<TextView>(R.id.copilotUsageTxt).text =
-            getString(R.string.disk_usage_copilot, DiskUsageManager.formatBytes(usage.copilotBytes))
-        findViewById<TextView>(R.id.logsUsageTxt).text =
-            getString(R.string.disk_usage_logs, DiskUsageManager.formatBytes(usage.logsBytes))
+    private fun formatHostPort(host: String, port: Int): String = "$host:$port"
+
+    private fun parseHostPort(raw: String, defaultHost: String, defaultPort: Int): HostPort {
+        val trimmed = raw.trim().removePrefix("http://").removePrefix("https://")
+        if (trimmed.isEmpty()) return HostPort(defaultHost, defaultPort)
+        val slash = trimmed.indexOf('/')
+        val hostPortPart = if (slash >= 0) trimmed.substring(0, slash) else trimmed
+        val colon = hostPortPart.lastIndexOf(':')
+        if (colon <= 0) {
+            return HostPort(hostPortPart.ifBlank { defaultHost }, defaultPort)
+        }
+        val host = hostPortPart.substring(0, colon).ifBlank { defaultHost }
+        val port = hostPortPart.substring(colon + 1).toIntOrNull() ?: defaultPort
+        return HostPort(host, port)
     }
 
-    private fun cameraLabel(facing: CameraFacing): String = when (facing) {
-        CameraFacing.REAR -> getString(R.string.camera_rear)
-        CameraFacing.FRONT -> getString(R.string.camera_front)
-        CameraFacing.BOTH -> getString(R.string.camera_both)
-    }
+    private data class HostPort(val host: String, val port: Int)
 
     companion object {
         const val EXTRA_SECTION = "section"

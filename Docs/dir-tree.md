@@ -25,7 +25,8 @@ parkiroid/
 │       ├── cpp/                       # NCNN JNI detector
 │       ├── java/com/dogan/
 │       │   ├── MainActivity.kt        # Button-grid hub
-│       │   ├── CameraActivity.kt      # Eye / live preview
+│       │   ├── CameraActivity.kt      # Preview + overlays + sensor HUD
+│       │   ├── SensorHudBridge.kt     # Live jolt/sound for Watchman Preview
 │       │   ├── SettingsActivity.kt    # Section settings + auto-save
 │       │   ├── SettingsPublisher.kt   # Local save + PUT /settings
 │       │   ├── SettingsStore.kt       # DataStore preferences

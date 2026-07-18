@@ -17,16 +17,32 @@
     <string name="exit_app">Exit</string>
     <string name="camera_button">Camera</string>
     <string name="camera_disabled_off">Camera is disabled while mode is OFF</string>
+    <string name="preview_title">Preview</string>
+    <string name="preview_button">Preview</string>
+    <string name="record_button">Record</string>
+    <string name="history_button">History</string>
 
     <string name="mode_copilot">Copilot</string>
     <string name="mode_spotter">Spotter</string>
     <string name="mode_watchman">Watchman</string>
     <string name="mode_off">OFF</string>
 
+    <string name="section_configure">Configure</string>
+    <string name="section_retention">Retention</string>
+    <string name="section_browse">Browse</string>
+    <string name="section_danger">Danger</string>
+
     <string name="api_endpoint">API endpoint</string>
     <string name="api_port">API port</string>
+    <string name="api_url">API URL</string>
     <string name="stream_endpoint">Stream endpoint</string>
     <string name="stream_port">Stream port</string>
+    <string name="stream_url">Stream URL</string>
+    <string name="keep_frames_hours">Keep frames (hours)</string>
+    <string name="flush_history">Flush history</string>
+    <string name="recording_audio_mode">Audio</string>
+    <string name="preview_jolt_value">Jolt: %1$.2f m/s²</string>
+    <string name="preview_sound_value">Sound: %1$.0f</string>
     <string name="default_mode">Default mode</string>
     <string name="active_camera">Camera</string>
     <string name="camera_rear">Rear</string>
@@ -43,7 +59,7 @@
     <string name="fps_label">FPS</string>
     <string name="fps_increase">Increase FPS</string>
     <string name="fps_decrease">Decrease FPS</string>
-    <string name="min_confidence">Minimum confidence</string>
+    <string name="min_confidence">Confidence</string>
     <string name="record_video">Record video</string>
     <string name="video_audio_mode">Video audio</string>
     <string name="image_retention_hours">Keep processed images (hours)</string>
@@ -54,7 +70,7 @@
     <string name="copilot_distance_control">Distance control system</string>
     <string name="copilot_video_chunk_minutes">Video chunk (minutes)</string>
     <string name="recording_chunk_minutes">Chunk size (minutes)</string>
-    <string name="recording_sound">Sound</string>
+    <string name="recording_sound">Audio</string>
     <string name="recording_retention_hours">Retention (hours, max 12)</string>
     <string name="frame_quality">Frame quality</string>
     <string name="alert_duration">Alert duration</string>
@@ -63,7 +79,7 @@
     <string name="history_frames_title">%1$s history</string>
     <string name="history_frames_empty">No history frames yet.</string>
     <string name="show_bounding_boxes">Show detection boxes</string>
-    <string name="ai_model">Default AI model</string>
+    <string name="ai_model">AI model</string>
 
     <string name="disk_usage_spotter">Spotter disk usage: %1$s</string>
     <string name="disk_usage_watchman">Watchman disk usage: %1$s</string>

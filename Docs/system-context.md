@@ -36,7 +36,7 @@ The app is not a standalone cloud product—it is the **edge client** that feeds
    - Battery level and temperature are recorded and sent.
 3. Photos and metrics are sent securely using a bearer token from username/password login (only while Connected).
 4. Each phone is identified by a stable **device ID** (derived from the phone itself) so the server can distinguish multiple vehicles or deployments.
-5. The phone always runs YOLO26 NCNN detection locally (including bounding boxes on the Camera eye); the server may also analyze uploaded frames when connected.
+5. The phone always runs YOLO26 NCNN detection locally (including bounding boxes on Preview); the server may also analyze uploaded frames when connected.
 
 ### Authentication
 

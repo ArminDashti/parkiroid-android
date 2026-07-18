@@ -2,17 +2,33 @@
 
 ## Responsibility
 
-MainActivity hosts the dark button grid (Camera 80dp; other buttons 72dp). Mode tabs persist `operating_mode` (including OFF) via SettingsPublisher. Section buttons open SettingsActivity with `EXTRA_SECTION`. Camera opens CameraActivity when mode ≠ OFF. Exit stops services and kills the process.
+MainActivity hosts a dark button grid (72dp rows). Layout:
 
-Connectivity uses username/password (`SessionCredentials` → `POST /auth`); the same bearer covers API and LiveKit. The Connect button shows only Connected/Disconnected; ping, API, and LiveKit status sit above it with error text on failure.
+| Left | Right |
+|------|-------|
+| Copilot (mode; re-tap → OFF) | gear → Copilot settings |
+| Spotter (mode; re-tap → OFF) | gear → Spotter settings |
+| Watchman (mode; re-tap → OFF) | gear → Watchman settings |
+| Connectivity status (Connected/Disconnected) | gear → Connectivity |
+| Record → Recording settings | Settings → General |
+| Logs | Exit |
+
+No Camera button on main. Preview opens from section settings (`CameraActivity`). Default unset `operating_mode` is **OFF**. No auto-connect on launch.
+
+Mode persist via SettingsPublisher. Exit stops services and kills the process.
+
+Connectivity uses username/password (`SessionCredentials` → `POST /auth`); the same bearer covers API and LiveKit. Connect is manual; API URL / Stream URL are combined host:port fields.
+
+Settings sections use standard order: **Configure → Retention → Browse → Danger**.
 
 ## Key types
 
 | Type | Role |
 |------|------|
 | `MainActivity` | Mode selection + navigation hub |
-| `CameraActivity` | Live preview + detection overlay (eye) |
-| `SettingsActivity` | Focused section UI; auto-save + PUT |
+| `CameraActivity` | Live preview + detection overlay; Watchman HUD (jolt/sound) |
+| `SensorHudBridge` | Live jolt/sound values for preview HUD |
+| `SettingsActivity` | Focused section UI; auto-save + PUT; Preview starts CaptureService |
 | `SettingsPublisher` | DataStore save + `PUT /api/v1/settings` |
 | `ServerConnectionManager` | Connect/disconnect + ping/LiveKit refresh |
 | `SessionCredentials` | In-memory username/password for all API clients |
@@ -23,4 +39,4 @@ Connectivity uses username/password (`SessionCredentials` → `POST /auth`); the
 
 ## Dependencies
 
-- `SettingsStore`, `ServerConnectionManager`, `CaptureService`, `DoganCamera`, `DetectionOverlayBridge`
+- `SettingsStore`, `ServerConnectionManager`, `CaptureService`, `DoganCamera`, `DetectionOverlayBridge`, `SensorHudBridge`

@@ -32,4 +32,14 @@
     <style name="Widget.Dogan.Button.ModeUnselected" parent="Widget.Dogan.Button">
         <item name="backgroundTint">@color/dogan_mode_unselected</item>
     </style>
+
+    <style name="Widget.Dogan.SectionHeader" parent="@android:style/Widget.TextView">
+        <item name="android:layout_marginTop">16dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">@color/dogan_on_surface_secondary</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

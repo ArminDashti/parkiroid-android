@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -11,9 +12,63 @@
         android:orientation="vertical">
 
         <TextView
+            style="@style/Widget.Dogan.SectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0dp"
+            android:text="@string/section_configure" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/username">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/usernameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="yes"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/password">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/passwordInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="yes"
+                android:inputType="textPassword" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/api_url">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/apiUrlInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/stream_url">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/streamUrlInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
             android:id="@+id/pingStatusTxt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="@color/dogan_on_surface" />
 
@@ -47,86 +102,59 @@
             android:id="@+id/connectionBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:text="@string/disconnected_label" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/username">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/usernameInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text"
-                android:importantForAutofill="yes" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:text="@string/section_retention" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/password">
+            android:hint="@string/log_retention_days">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/passwordInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword"
-                android:importantForAutofill="yes" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/api_endpoint">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/apiEndpointInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textUri" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/api_port">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/apiPortInput"
+                android:id="@+id/logRetentionInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/stream_endpoint">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/streamEndpointInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textUri" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:text="@string/section_browse" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/logsBtn"
+            style="@style/Widget.Dogan.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/stream_port">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/streamPortInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:text="@string/logs_title"
+            app:icon="@drawable/ic_logs" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <TextView
+            style="@style/Widget.Dogan.SectionHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/telemetry_interval_sec">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/telemetryIntervalInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:text="@string/section_danger" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/flushHistoryBtn"
+            style="@style/Widget.Dogan.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/flush_history" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/flushLogsBtn"
+            style="@style/Widget.Dogan.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/flush_logs" />
     </LinearLayout>
 </ScrollView>
