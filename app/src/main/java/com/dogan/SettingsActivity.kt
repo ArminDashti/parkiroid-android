@@ -158,14 +158,14 @@ class SettingsActivity : AppCompatActivity() {
             ) { it.copy(apiEndpoint = parsed.host, apiPort = parsed.port) }
         }
         bindText(streamUrl) { text ->
-            val parsed = parseHostPort(text, SettingsStore.DEFAULT_API_ENDPOINT, SettingsStore.DEFAULT_STREAM_PORT)
+            val parsed = parseHostPort(text, SettingsStore.DEFAULT_STREAM_ENDPOINT, SettingsStore.DEFAULT_STREAM_PORT)
             persist(
                 mapOf("stream_endpoint" to parsed.host, "stream_port" to parsed.port),
             ) { it.copy(streamEndpoint = parsed.host, streamPort = parsed.port) }
         }
 
         bindLogRetention(settings)
-        bindLogsButton()
+        bindLogsButton(LogSection.CONNECTIVITY)
         findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
             confirmFlush(getString(R.string.flush_history)) {
                 FrameHistoryStore(this).flush()
@@ -225,12 +225,14 @@ class SettingsActivity : AppCompatActivity() {
         }
         val chunk = findViewById<TextInputEditText>(R.id.recordingChunkInput)
         val quality = findViewById<AutoCompleteTextView>(R.id.recordingQualityInput)
+        val enabled = findViewById<SwitchMaterial>(R.id.recordingEnabledSwitch)
         val sound = findViewById<SwitchMaterial>(R.id.recordingSoundSwitch)
 
         chunk.setText(settings.recordingChunkMinutes.toString())
         setupQualityDropdown(quality, settings.recordingQuality) { q ->
             persist(mapOf("recording_quality" to q.toStoredValue())) { it.copy(recordingQuality = q) }
         }
+        enabled.isChecked = settings.recordingEnabled
         sound.isChecked = settings.recordingSoundEnabled
 
         bindText(chunk) { text ->
@@ -238,6 +240,10 @@ class SettingsActivity : AppCompatActivity() {
                 text.toIntOrNull() ?: SettingsStore.DEFAULT_COPILOT_VIDEO_CHUNK_MINUTES,
             )
             persist(mapOf("recording_chunk_minutes" to value)) { it.copy(recordingChunkMinutes = value) }
+        }
+        enabled.setOnCheckedChangeListener { _, checked ->
+            if (suppressAutoSave) return@setOnCheckedChangeListener
+            persist(mapOf("recording_enabled" to checked)) { it.copy(recordingEnabled = checked) }
         }
         sound.setOnCheckedChangeListener { _, checked ->
             if (suppressAutoSave) return@setOnCheckedChangeListener
@@ -254,7 +260,7 @@ class SettingsActivity : AppCompatActivity() {
                 openHistory(if (mode == OperatingMode.OFF) OperatingMode.COPILOT else mode)
             }
         }
-        bindLogsButton()
+        bindLogsButton(LogSection.RECORDING)
         findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
             confirmFlush(getString(R.string.flush_history)) {
                 FrameHistoryStore(this).flush()
@@ -371,7 +377,7 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.historyFramesBtn).setOnClickListener {
             openHistory(OperatingMode.SPOTTER)
         }
-        bindLogsButton()
+        bindLogsButton(LogSection.SPOTTER)
         findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
             confirmFlush(OperatingMode.SPOTTER.displayName) {
                 diskUsageManager.flushSpotter()
@@ -390,6 +396,10 @@ class SettingsActivity : AppCompatActivity() {
         val aiModel = findViewById<AutoCompleteTextView>(R.id.aiModelInput)
         val jolt = findViewById<AutoCompleteTextView>(R.id.joltSensitivityInput)
         val sound = findViewById<AutoCompleteTextView>(R.id.soundSensitivityInput)
+        val customJoltLayout = findViewById<View>(R.id.customJoltScaleLayout)
+        val customSoundLayout = findViewById<View>(R.id.customSoundThresholdLayout)
+        val customJoltInput = findViewById<TextInputEditText>(R.id.customJoltScaleInput)
+        val customSoundInput = findViewById<TextInputEditText>(R.id.customSoundThresholdInput)
         val frameQuality = findViewById<AutoCompleteTextView>(R.id.frameQualityInput)
         val confidence = findViewById<TextInputEditText>(R.id.minConfidenceInput)
         val keepFrames = findViewById<TextInputEditText>(R.id.keepFramesInput)
@@ -400,6 +410,27 @@ class SettingsActivity : AppCompatActivity() {
         jolt.setText(settings.joltSensitivity.displayName, false)
         setupDropdown(sound, SensitivityLevel.all.map { it.displayName })
         sound.setText(settings.soundSensitivity.displayName, false)
+        customJoltInput.setText(settings.customJoltScale.toString())
+        customSoundInput.setText(settings.customSoundThreshold.toString())
+        fun refreshCustomVisibility() {
+            customJoltLayout.visibility =
+                if (settings.joltSensitivity == SensitivityLevel.CUSTOM ||
+                    jolt.text.toString() == SensitivityLevel.CUSTOM.displayName
+                ) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+            customSoundLayout.visibility =
+                if (settings.soundSensitivity == SensitivityLevel.CUSTOM ||
+                    sound.text.toString() == SensitivityLevel.CUSTOM.displayName
+                ) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+        }
+        refreshCustomVisibility()
         setupQualityDropdown(frameQuality, mode.frameQuality) { q ->
             persistMode("watcher", mapOf("watcher_frame_quality" to q.toStoredValue())) { m -> m.copy(frameQuality = q) }
         }
@@ -412,11 +443,25 @@ class SettingsActivity : AppCompatActivity() {
         }
         jolt.setOnItemClickListener { _, _, position, _ ->
             val level = SensitivityLevel.all.getOrElse(position) { SensitivityLevel.MEDIUM }
+            customJoltLayout.visibility = if (level == SensitivityLevel.CUSTOM) View.VISIBLE else View.GONE
             persist(mapOf("jolt_sensitivity" to level.toStoredValue())) { it.copy(joltSensitivity = level) }
         }
         sound.setOnItemClickListener { _, _, position, _ ->
             val level = SensitivityLevel.all.getOrElse(position) { SensitivityLevel.MEDIUM }
+            customSoundLayout.visibility = if (level == SensitivityLevel.CUSTOM) View.VISIBLE else View.GONE
             persist(mapOf("sound_sensitivity" to level.toStoredValue())) { it.copy(soundSensitivity = level) }
+        }
+        bindText(customJoltInput) { text ->
+            val value = SettingsStore.normalizeCustomJoltScale(
+                text.toFloatOrNull() ?: SettingsStore.DEFAULT_CUSTOM_JOLT_SCALE,
+            )
+            persist(mapOf("custom_jolt_scale" to value)) { it.copy(customJoltScale = value) }
+        }
+        bindText(customSoundInput) { text ->
+            val value = SettingsStore.normalizeCustomSoundThreshold(
+                text.toDoubleOrNull() ?: SettingsStore.DEFAULT_CUSTOM_SOUND_THRESHOLD,
+            )
+            persist(mapOf("custom_sound_threshold" to value)) { it.copy(customSoundThreshold = value) }
         }
         bindText(confidence) { text ->
             val value = SettingsStore.normalizeConfidence(
@@ -440,7 +485,7 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.historyFramesBtn).setOnClickListener {
             openHistory(OperatingMode.WATCHER)
         }
-        bindLogsButton()
+        bindLogsButton(LogSection.WATCHMAN)
         findViewById<MaterialButton>(R.id.flushHistoryBtn).setOnClickListener {
             confirmFlush(OperatingMode.WATCHER.displayName) {
                 diskUsageManager.flushWatcher()
@@ -485,9 +530,13 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun bindLogsButton() {
+    private fun bindLogsButton(section: LogSection? = null) {
         findViewById<MaterialButton>(R.id.logsBtn)?.setOnClickListener {
-            startActivity(Intent(this, LogsActivity::class.java))
+            val intent = Intent(this, LogsActivity::class.java)
+            if (section != null) {
+                intent.putExtra(LogsActivity.EXTRA_LOG_SECTION, section.storedValue)
+            }
+            startActivity(intent)
         }
     }
 
@@ -502,14 +551,18 @@ class SettingsActivity : AppCompatActivity() {
     private fun openPreview(preferMode: OperatingMode?, showSensors: Boolean) {
         lifecycleScope.launch {
             val settings = settingsStore.settingsFlow.first()
-            val target = when {
-                preferMode != null && preferMode != OperatingMode.OFF -> preferMode
-                settings.operatingMode != OperatingMode.OFF -> settings.operatingMode
-                else -> OperatingMode.COPILOT
+            if (settings.operatingMode == OperatingMode.OFF) {
+                Toast.makeText(
+                    this@SettingsActivity,
+                    R.string.preview_requires_active_mode,
+                    Toast.LENGTH_LONG,
+                ).show()
+                return@launch
             }
-            if (settings.operatingMode != target) {
-                SettingsPublisher.pushOperatingMode(this@SettingsActivity, target)
-            }
+            // preferMode is only used for HUD defaults; never auto-activates a mode.
+            val showSensorHud = showSensors ||
+                settings.operatingMode == OperatingMode.WATCHER ||
+                preferMode == OperatingMode.WATCHER
             startForegroundService(
                 Intent(this@SettingsActivity, CaptureService::class.java).apply {
                     action = CaptureService.ACTION_START
@@ -517,7 +570,7 @@ class SettingsActivity : AppCompatActivity() {
             )
             startActivity(
                 Intent(this@SettingsActivity, CameraActivity::class.java)
-                    .putExtra(CameraActivity.EXTRA_SHOW_SENSORS, showSensors),
+                    .putExtra(CameraActivity.EXTRA_SHOW_SENSORS, showSensorHud),
             )
         }
     }

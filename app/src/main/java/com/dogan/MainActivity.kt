@@ -130,7 +130,15 @@ class MainActivity : AppCompatActivity() {
             if (mode == OperatingMode.OFF) {
                 stopMonitoringIfNeeded()
             } else {
-                ensureMonitoringStarted()
+                ensureMonitoringStarted(forceModeRefresh = true)
+                if (!hasRequiredPermissions()) {
+                    val section = LogSection.forOperatingMode(mode)
+                    AppLogger.error(
+                        section,
+                        mode.displayName,
+                        "Cannot start ${mode.displayName}: required permissions missing",
+                    )
+                }
             }
         }
     }
@@ -191,12 +199,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun ensureMonitoringStarted() {
-        if (monitoringActive) return
-        if (!hasRequiredPermissions()) return
+    private fun ensureMonitoringStarted(forceModeRefresh: Boolean = false) {
         if (currentMode == OperatingMode.OFF) return
+        if (!hasRequiredPermissions()) return
         val intent = Intent(this, CaptureService::class.java).apply {
-            action = CaptureService.ACTION_START
+            action = if (forceModeRefresh || monitoringActive) {
+                CaptureService.ACTION_MODE_ACTIVATED
+            } else {
+                CaptureService.ACTION_START
+            }
         }
         startForegroundService(intent)
         monitoringActive = true

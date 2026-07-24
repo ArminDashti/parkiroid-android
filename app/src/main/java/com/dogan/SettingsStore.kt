@@ -53,6 +53,8 @@ data class AppSettings(
     val telemetryRetentionHours: Int,
     val joltSensitivity: SensitivityLevel,
     val soundSensitivity: SensitivityLevel,
+    val customJoltScale: Float,
+    val customSoundThreshold: Double,
     val logRetentionDays: Int,
     val watcherSettings: ModeSettings,
     val spotterSettings: ModeSettings,
@@ -64,6 +66,7 @@ data class AppSettings(
     val recordingFps: Float,
     val recordingChunkMinutes: Int,
     val recordingQuality: ImageQuality,
+    val recordingEnabled: Boolean,
     val recordingSoundEnabled: Boolean,
     val recordingRetentionHours: Int,
 ) {
@@ -137,6 +140,8 @@ class SettingsStore(private val context: Context) {
     private val telemetryRetentionHoursKey = intPreferencesKey("telemetry_retention_hours")
     private val joltSensitivityKey = stringPreferencesKey("jolt_sensitivity")
     private val soundSensitivityKey = stringPreferencesKey("sound_sensitivity")
+    private val customJoltScaleKey = floatPreferencesKey("custom_jolt_scale")
+    private val customSoundThresholdKey = floatPreferencesKey("custom_sound_threshold")
     private val logRetentionDaysKey = intPreferencesKey("log_retention_days")
     private val copilotAlertVolumeKey = stringPreferencesKey("copilot_alert_volume")
     private val copilotAlertsEnabledKey = booleanPreferencesKey("copilot_alerts_enabled")
@@ -145,6 +150,7 @@ class SettingsStore(private val context: Context) {
     private val recordingFpsKey = floatPreferencesKey("recording_fps")
     private val recordingChunkMinKey = intPreferencesKey("recording_chunk_minutes")
     private val recordingQualityKey = stringPreferencesKey("recording_quality")
+    private val recordingEnabledKey = booleanPreferencesKey("recording_enabled")
     private val recordingSoundKey = booleanPreferencesKey("recording_sound_enabled")
     private val recordingRetentionKey = intPreferencesKey("recording_retention_hours")
 
@@ -175,7 +181,7 @@ class SettingsStore(private val context: Context) {
         AppSettings(
             apiEndpoint = apiEndpoint,
             apiPort = apiPort,
-            streamEndpoint = pref[streamEndpointKey] ?: apiEndpoint,
+            streamEndpoint = pref[streamEndpointKey] ?: DEFAULT_STREAM_ENDPOINT,
             streamPort = pref[streamPortKey] ?: DEFAULT_STREAM_PORT,
             username = pref[usernameKey] ?: DEFAULT_USERNAME,
             password = pref[passwordKey] ?: DEFAULT_PASSWORD,
@@ -204,6 +210,12 @@ class SettingsStore(private val context: Context) {
             ),
             joltSensitivity = SensitivityLevel.fromStoredValue(pref[joltSensitivityKey]),
             soundSensitivity = SensitivityLevel.fromStoredValue(pref[soundSensitivityKey]),
+            customJoltScale = normalizeCustomJoltScale(
+                pref[customJoltScaleKey] ?: DEFAULT_CUSTOM_JOLT_SCALE,
+            ),
+            customSoundThreshold = normalizeCustomSoundThreshold(
+                (pref[customSoundThresholdKey] ?: DEFAULT_CUSTOM_SOUND_THRESHOLD.toFloat()).toDouble(),
+            ),
             logRetentionDays = normalizeLogRetentionDays(pref[logRetentionDaysKey] ?: DEFAULT_LOG_RETENTION_DAYS),
             watcherSettings = readModeSettings(pref, "watcher", DEFAULT_WATCHMAN_FPS, legacyMinConf),
             spotterSettings = readModeSettings(pref, "spotter", DEFAULT_SPOTTER_FPS, legacyMinConf),
@@ -219,6 +231,7 @@ class SettingsStore(private val context: Context) {
                 pref[recordingChunkMinKey] ?: DEFAULT_COPILOT_VIDEO_CHUNK_MINUTES,
             ),
             recordingQuality = ImageQuality.fromStoredValue(pref[recordingQualityKey]),
+            recordingEnabled = pref[recordingEnabledKey] ?: DEFAULT_RECORDING_ENABLED,
             recordingSoundEnabled = pref[recordingSoundKey] ?: true,
             recordingRetentionHours = normalizeRecordingRetentionHours(
                 pref[recordingRetentionKey] ?: DEFAULT_RECORDING_RETENTION_HOURS,
@@ -253,6 +266,8 @@ class SettingsStore(private val context: Context) {
             pref[telemetryRetentionHoursKey] = settings.telemetryRetentionHours
             pref[joltSensitivityKey] = settings.joltSensitivity.toStoredValue()
             pref[soundSensitivityKey] = settings.soundSensitivity.toStoredValue()
+            pref[customJoltScaleKey] = settings.customJoltScale
+            pref[customSoundThresholdKey] = settings.customSoundThreshold.toFloat()
             pref[logRetentionDaysKey] = settings.logRetentionDays
             pref[copilotAlertVolumeKey] = settings.copilotAlertVolume.toStoredValue()
             pref[copilotAlertsEnabledKey] = settings.copilotAlertsEnabled
@@ -261,6 +276,7 @@ class SettingsStore(private val context: Context) {
             pref[recordingFpsKey] = settings.recordingFps
             pref[recordingChunkMinKey] = settings.recordingChunkMinutes
             pref[recordingQualityKey] = settings.recordingQuality.toStoredValue()
+            pref[recordingEnabledKey] = settings.recordingEnabled
             pref[recordingSoundKey] = settings.recordingSoundEnabled
             pref[recordingRetentionKey] = settings.recordingRetentionHours
             writeModeSettings(pref, "watcher", settings.watcherSettings)
@@ -336,9 +352,12 @@ class SettingsStore(private val context: Context) {
     companion object {
         const val DEFAULT_USERNAME = "armin"
         const val DEFAULT_PASSWORD = "dogan123"
-        const val DEFAULT_API_ENDPOINT = "dogan.xaigrok.ir"
+        const val DEFAULT_API_ENDPOINT = "dogan-api.xaigrok.ir"
         const val DEFAULT_API_PORT = 443
-        const val DEFAULT_STREAM_PORT = 7880
+        const val DEFAULT_STREAM_ENDPOINT = "dogan-livekit.xaigrok.ir"
+        const val DEFAULT_STREAM_PORT = 443
+        const val DEFAULT_CUSTOM_JOLT_SCALE = 1.0f
+        const val DEFAULT_CUSTOM_SOUND_THRESHOLD = 2500.0
         const val DEFAULT_INTERVAL_MS = 15_000L
         const val DEFAULT_TELEMETRY_INTERVAL_SEC = 1
         const val MIN_INTERVAL_MS = 100L
@@ -355,6 +374,7 @@ class SettingsStore(private val context: Context) {
         const val DEFAULT_SPOTTER_FPS = 0.125f
         const val DEFAULT_COPILOT_FPS = 4f
         const val DEFAULT_RECORDING_FPS = 15f
+        const val DEFAULT_RECORDING_ENABLED = false
         const val DEFAULT_MIN_CONFIDENCE = 0.7f
         const val DEFAULT_TELEMETRY_RETENTION_HOURS = 72
         const val DEFAULT_MEDIA_RETENTION_HOURS = 24
@@ -401,6 +421,12 @@ class SettingsStore(private val context: Context) {
 
         fun normalizeVideoChunkMinutes(minutes: Int): Int =
             minutes.coerceIn(1, 120)
+
+        fun normalizeCustomJoltScale(scale: Float): Float =
+            scale.coerceIn(0.1f, 5.0f)
+
+        fun normalizeCustomSoundThreshold(threshold: Double): Double =
+            threshold.coerceIn(100.0, 20_000.0)
 
         fun stepFpsDown(current: Float): Float {
             val normalized = normalizeFps(current)

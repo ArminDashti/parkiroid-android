@@ -21,6 +21,9 @@ class AudioCapture(
     @Volatile
     var soundSensitivity: SensitivityLevel = SensitivityLevel.MEDIUM
 
+    @Volatile
+    var customSoundThreshold: Double = SettingsStore.DEFAULT_CUSTOM_SOUND_THRESHOLD
+
     fun start() {
         if (running) return
         val sampleRate = CabinNoiseArchive.SAMPLE_RATE
@@ -103,6 +106,7 @@ class AudioCapture(
         SensitivityLevel.LOW -> 4000.0
         SensitivityLevel.MEDIUM -> 2500.0
         SensitivityLevel.HIGH -> 1500.0
+        SensitivityLevel.CUSTOM -> customSoundThreshold
     }
 
     companion object {

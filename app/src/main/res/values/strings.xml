@@ -54,6 +54,8 @@
     <string name="settings_sync_interval">Settings sync interval (seconds)</string>
     <string name="jolt_sensitivity">Jolt sensitivity</string>
     <string name="sound_sensitivity">Sound sensitivity</string>
+    <string name="custom_jolt_scale">Custom jolt scale</string>
+    <string name="custom_sound_threshold">Custom sound threshold (RMS)</string>
     <string name="log_retention_days">Keep logs (days)</string>
 
     <string name="fps_label">FPS</string>
@@ -70,7 +72,9 @@
     <string name="copilot_distance_control">Distance control system</string>
     <string name="copilot_video_chunk_minutes">Video chunk (minutes)</string>
     <string name="recording_chunk_minutes">Chunk size (minutes)</string>
+    <string name="recording_enabled">Record video</string>
     <string name="recording_sound">Audio</string>
+    <string name="preview_requires_active_mode">Turn on Copilot, Spotter, or Watchman before opening Preview.</string>
     <string name="recording_retention_hours">Retention (hours, max 12)</string>
     <string name="frame_quality">Frame quality</string>
     <string name="alert_duration">Alert duration</string>

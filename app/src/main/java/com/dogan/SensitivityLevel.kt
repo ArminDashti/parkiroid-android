@@ -4,7 +4,8 @@ package com.dogan
 enum class SensitivityLevel(val displayName: String) {
     LOW("Low"),
     MEDIUM("Medium"),
-    HIGH("High");
+    HIGH("High"),
+    CUSTOM("Custom");
 
     fun toStoredValue(): String = name.lowercase()
 

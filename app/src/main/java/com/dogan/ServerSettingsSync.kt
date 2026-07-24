@@ -115,6 +115,20 @@ object ServerSettingsSync {
         if (remote.has("sound_sensitivity")) {
             updated = updated.copy(soundSensitivity = SensitivityLevel.fromStoredValue(remote.getString("sound_sensitivity")))
         }
+        if (remote.has("custom_jolt_scale")) {
+            updated = updated.copy(
+                customJoltScale = SettingsStore.normalizeCustomJoltScale(
+                    remote.getDouble("custom_jolt_scale").toFloat(),
+                ),
+            )
+        }
+        if (remote.has("custom_sound_threshold")) {
+            updated = updated.copy(
+                customSoundThreshold = SettingsStore.normalizeCustomSoundThreshold(
+                    remote.getDouble("custom_sound_threshold"),
+                ),
+            )
+        }
         if (remote.has("log_retention_days")) {
             updated = updated.copy(
                 logRetentionDays = SettingsStore.normalizeLogRetentionDays(remote.getInt("log_retention_days")),
@@ -155,6 +169,9 @@ object ServerSettingsSync {
         }
         if (remote.has("recording_quality")) {
             updated = updated.copy(recordingQuality = ImageQuality.fromStoredValue(remote.getString("recording_quality")))
+        }
+        if (remote.has("recording_enabled")) {
+            updated = updated.copy(recordingEnabled = remote.getBoolean("recording_enabled"))
         }
         if (remote.has("recording_sound_enabled")) {
             updated = updated.copy(recordingSoundEnabled = remote.getBoolean("recording_sound_enabled"))

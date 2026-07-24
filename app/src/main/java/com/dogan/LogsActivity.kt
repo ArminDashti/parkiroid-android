@@ -18,6 +18,9 @@ class LogsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_logs)
         findViewById<MaterialToolbar>(R.id.logsToolbar).setNavigationOnClickListener { finish() }
 
+        val filterSection = intent.getStringExtra(EXTRA_LOG_SECTION)
+            ?.let { LogSection.fromStoredValue(it) }
+
         val logsTxt = findViewById<TextView>(R.id.logsTxt)
         val logsScroll = findViewById<ScrollView>(R.id.logsScroll)
 
@@ -27,7 +30,12 @@ class LogsActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                AppLogger.lines.collect { lines ->
+                AppLogger.entries.collect { entries ->
+                    val lines = if (filterSection == null) {
+                        entries.map { it.displayLine }
+                    } else {
+                        entries.filter { it.section == filterSection }.map { it.displayLine }
+                    }
                     logsTxt.text = if (lines.isEmpty()) {
                         getString(R.string.logs_empty)
                     } else {
@@ -37,5 +45,9 @@ class LogsActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_LOG_SECTION = "log_section"
     }
 }

@@ -42,9 +42,9 @@ object EndpointUrlBuilder {
     fun defaultEndpointFromLegacyUrl(serverBaseUrl: String): String {
         return try {
             val uri = URI(serverBaseUrl.trim())
-            uri.host ?: "dogan.xaigrok.ir"
+            uri.host ?: "dogan-api.xaigrok.ir"
         } catch (_: Exception) {
-            "dogan.xaigrok.ir"
+            "dogan-api.xaigrok.ir"
         }
     }
 

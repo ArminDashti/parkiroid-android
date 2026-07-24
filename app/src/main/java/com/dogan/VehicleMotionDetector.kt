@@ -16,6 +16,9 @@ class VehicleMotionDetector(
     var joltSensitivity: SensitivityLevel = SensitivityLevel.MEDIUM
 
     @Volatile
+    var customJoltScale: Float = SettingsStore.DEFAULT_CUSTOM_JOLT_SCALE
+
+    @Volatile
     var lastMagnitudeMps2: Float = 0f
         private set
 
@@ -116,6 +119,7 @@ class VehicleMotionDetector(
         SensitivityLevel.LOW -> 1.8f
         SensitivityLevel.MEDIUM -> 1.0f
         SensitivityLevel.HIGH -> 0.6f
+        SensitivityLevel.CUSTOM -> customJoltScale
     }
 
     companion object {

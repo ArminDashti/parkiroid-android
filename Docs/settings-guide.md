@@ -21,6 +21,7 @@ Each section (except Copilot, unchanged) follows **Configure → Retention → B
 
 | Setting | Key | Default |
 |---------|-----|---------|
+| Record video | `recording_enabled` | **off** |
 | Audio | `recording_sound_enabled` | on |
 | FPS (+/−) | `recording_fps` | 15 |
 | Frame quality | `recording_quality` | BALANCED |
@@ -29,7 +30,7 @@ Each section (except Copilot, unchanged) follows **Configure → Retention → B
 | Preview / History / Logs | — | Browse |
 | Flush history / Flush logs | — | Danger |
 
-Recording runs while mode ≠ OFF. Preview selects current mode (or Copilot if OFF).
+Recording runs only when **Record video** is on and mode ≠ OFF (keeps camera continuous while recording). Preview requires an already-active mode (does not auto-enable Copilot/Spotter/Watchman).
 
 ## Copilot
 
@@ -58,8 +59,10 @@ Spotter also enables Watchman alerts. Preview opens with bounding boxes.
 | Confidence | `watcher_min_confidence` | 0.7 |
 | FPS (+/−) | `watcher_fps_f` | 0.125 |
 | Frame quality | `watcher_frame_quality` | BALANCED |
-| Sound sensitivity | `sound_sensitivity` | Medium |
-| Jolt sensitivity | `jolt_sensitivity` | Medium |
+| Sound sensitivity | `sound_sensitivity` | Medium (Low / Medium / High / Custom) |
+| Custom sound threshold | `custom_sound_threshold` | 2500 RMS (shown when Custom) |
+| Jolt sensitivity | `jolt_sensitivity` | Medium (Low / Medium / High / Custom) |
+| Custom jolt scale | `custom_jolt_scale` | 1.0 (shown when Custom) |
 | Keep frames (hours) | `watcher_image_retention_hours` | 24 |
 | Keep logs | `log_retention_days` | 7 |
 | Preview (boxes + jolt/sound HUD) / History / Logs | — | Browse |

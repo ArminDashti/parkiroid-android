@@ -30,13 +30,13 @@ The app is not a standalone cloud product—it is the **edge client** that feeds
 
 ### When monitoring is active
 
-1. User selects an active mode on the main grid (not OFF). CaptureService runs on-device detection always.
+1. User selects an active mode on the main grid (not OFF). CaptureService runs on-device detection on a camera duty cycle (open → still → close), unless Preview or recording needs continuous camera.
 2. On each FPS interval (and on motion events), when connected:
-   - A photo is taken and uploaded to the server.
+   - A photo may be taken and uploaded (image upload defaults to on-demand).
    - Battery level and temperature are recorded and sent.
 3. Photos and metrics are sent securely using a bearer token from username/password login (only while Connected).
 4. Each phone is identified by a stable **device ID** (derived from the phone itself) so the server can distinguish multiple vehicles or deployments.
-5. The phone always runs YOLO26 NCNN detection locally (including bounding boxes on Preview); the server may also analyze uploaded frames when connected.
+5. The phone runs YOLO26 NCNN detection locally when a mode is active (including bounding boxes on Preview); the server may also analyze uploaded frames when connected.
 
 ### Authentication
 
@@ -51,7 +51,7 @@ Each installation is treated as one **device** on the server, identified automat
 | Scenario | Description |
 |----------|-------------|
 | **Home / lab** | Phone and server on the same Wi‑Fi; server address is `http://<host-ip>:8090/dogan` (Docker `DOGAN_API_PORT` default). |
-| **Hosted server** | Server on the public internet; phone uses HTTPS URL with `/dogan` path (default `https://dogan.xaigrok.ir/dogan`); requires stable connectivity from the parking location. |
+| **Hosted server** | Server on the public internet; phone uses HTTPS URL with `/dogan` path (default `https://dogan-api.xaigrok.ir/dogan`); LiveKit default `wss://dogan-livekit.xaigrok.ir`; requires stable connectivity from the parking location. |
 
 ## Privacy and data considerations
 

@@ -68,6 +68,8 @@ object SettingsPublisher {
             "telemetry_retention_hours" to settings.telemetryRetentionHours,
             "jolt_sensitivity" to settings.joltSensitivity.toStoredValue(),
             "sound_sensitivity" to settings.soundSensitivity.toStoredValue(),
+            "custom_jolt_scale" to settings.customJoltScale,
+            "custom_sound_threshold" to settings.customSoundThreshold,
             "log_retention_days" to settings.logRetentionDays,
             "alert_duration" to settings.alertDuration.toStoredValue(),
             "copilot_alerts_enabled" to settings.copilotAlertsEnabled,
@@ -76,6 +78,7 @@ object SettingsPublisher {
             "recording_fps" to settings.recordingFps,
             "recording_chunk_minutes" to settings.recordingChunkMinutes,
             "recording_quality" to settings.recordingQuality.toStoredValue(),
+            "recording_enabled" to settings.recordingEnabled,
             "recording_sound_enabled" to settings.recordingSoundEnabled,
             "recording_retention_hours" to settings.recordingRetentionHours,
         )

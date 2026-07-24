@@ -26,7 +26,13 @@ parkiroid/
 │       ├── java/com/dogan/
 │       │   ├── MainActivity.kt        # Button-grid hub
 │       │   ├── CameraActivity.kt      # Preview + overlays + sensor HUD
+│       │   ├── DetectionOverlayView.kt # Green/red bbox + confidence
+│       │   ├── DetectionOverlayBridge.kt
 │       │   ├── SensorHudBridge.kt     # Live jolt/sound for Watchman Preview
+│       │   ├── AppLogger.kt           # Section-tagged log ring buffer
+│       │   ├── LogSection.kt          # Spotter/Watchman/Recording/Connectivity
+│       │   ├── LogsActivity.kt        # Filtered or full Logs UI
+│       │   ├── SensitivityLevel.kt    # Low/Medium/High/Custom
 │       │   ├── SettingsActivity.kt    # Section settings + auto-save
 │       │   ├── SettingsPublisher.kt   # Local save + PUT /settings
 │       │   ├── SettingsStore.kt       # DataStore preferences
@@ -36,7 +42,8 @@ parkiroid/
 │       │   ├── ServerConnectionManager.kt
 │       │   ├── SessionCredentials.kt # Username/password for API+LiveKit
 │       │   ├── LiveKitStatusCache.kt
-│       │   ├── CaptureService.kt      # Detection + telemetry FG service
+│       │   ├── CaptureService.kt      # Detection FG service (duty-cycle camera)
+│       │   ├── DoganCamera.kt         # CameraX bind / still / preview
 │       │   ├── ModeController.kt      # Mode dispatch (incl. OFF)
 │       │   ├── OperatingMode.kt       # Copilot/Spotter/Watchman/OFF
 │       │   └── …                      # Engines, camera, API, telemetry
@@ -53,5 +60,9 @@ parkiroid/
 │           ├── drawable/ic_*.xml      # Main-grid and FPS icons
 │           └── values/                # colors, themes, strings
 ├── credentials.txt                    # Dev username/password (gitignored)
-└── scripts/                           # APK export helpers
+├── install-on-phone-directly.ps1      # ADB install over USB debugging (Windows)
+└── scripts/                           # APK export + USB/ADB install helpers
+    ├── export-apk.ps1                 # Build and copy APK to exports/
+    ├── export-apk.sh                  # Bash counterpart of export-apk.ps1
+    └── install-apk.sh                 # Bash ADB install counterpart
 ```

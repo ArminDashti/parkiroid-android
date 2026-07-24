@@ -86,7 +86,8 @@ class CameraActivity : AppCompatActivity() {
                     detectionOverlay.setTapToWatchEnabled(settings.operatingMode == OperatingMode.SPOTTER)
                     val sensorsVisible = showSensors || settings.operatingMode == OperatingMode.WATCHER
                     sensorHud.visibility = if (sensorsVisible) View.VISIBLE else View.GONE
-                    bindPreview(settings)
+                    // Keep CaptureService's monitoring bind (Preview + ImageAnalysis); only attach the surface.
+                    DoganCamera.attachPreviewSurface(previewView)
                 }
             }
         }
@@ -97,7 +98,11 @@ class CameraActivity : AppCompatActivity() {
         DoganCamera.attachPreviewSurface(previewView)
         DoganCamera.setStatusListener(
             onReady = { runOnUiThread { DoganCamera.attachPreviewSurface(previewView) } },
-            onError = { },
+            onError = {
+                runOnUiThread {
+                    Toast.makeText(this, R.string.camera_error, Toast.LENGTH_LONG).show()
+                }
+            },
         )
     }
 
@@ -112,24 +117,6 @@ class CameraActivity : AppCompatActivity() {
         detectionOverlay.clear()
         DoganCamera.clearStatusListener()
         super.onDestroy()
-    }
-
-    private fun bindPreview(settings: AppSettings) {
-        val facing = when (settings.activeCamera) {
-            CameraFacing.FRONT -> CameraFacing.FRONT
-            else -> CameraFacing.REAR
-        }
-        DoganCamera.bindForPreview(
-            context = this,
-            lifecycleOwner = this,
-            previewView = previewView,
-            cameraFacing = facing,
-            jpegQuality = settings.frameQualityForMode(settings.operatingMode).jpegQuality,
-            onReady = { DoganCamera.attachPreviewSurface(previewView) },
-            onError = {
-                Toast.makeText(this, R.string.camera_error, Toast.LENGTH_LONG).show()
-            },
-        )
     }
 
     companion object {

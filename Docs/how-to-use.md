@@ -16,7 +16,12 @@ You will need:
 
 ### 1. Install and open the app
 
-Open Dogan. The main screen is a button hub: mode rows (Copilot / Spotter / Watchman with settings gears), Connectivity, Record, Settings, Logs, Exit.
+From a PC with USB debugging enabled on the phone:
+
+- Windows: `.\install-on-phone-directly.ps1 -Launch`
+- macOS/Linux: `./scripts/install-apk.sh --build --launch`
+
+Then open Dogan. The main screen is a button hub: mode rows (Copilot / Spotter / Watchman with settings gears), Connectivity, Record, Settings, Logs, Exit.
 
 ### 2. Grant permissions
 
@@ -26,21 +31,22 @@ When prompted, allow **Camera**, microphone, and location as requested.
 
 Tap **Connectivity** (or its gear) and enter:
 
-- **Username / password** — server login (defaults match repo-root `credentials.txt`: `armin` / `dogan123`)
-- **API URL** — Dogan server as `host:port` (example: `192.168.1.10:8090`)
-- **Stream URL** — LiveKit as `host:port` (often same host, port `7880`)
+- **Username / password** — defaults `armin` / `dogan123` (also in repo-root `credentials.txt`)
+- **API URL** — Dogan server as `host:port` (default `dogan-api.xaigrok.ir:443`; local Docker example `192.168.1.10:8090`)
+- **Stream URL** — LiveKit as `host:port` (default `dogan-livekit.xaigrok.ir:443`)
 
 Above the Connect button you see **ping**, **API**, and **LiveKit** status. The button itself is only **Connected** or **Disconnected**. The app starts **disconnected**; connect manually. Failures show an error near the button. Changes save automatically.
 
 ### 4. Pick a mode
 
-On the main screen, tap **Copilot**, **Spotter**, or **Watchman**. Tap the active mode again to turn **OFF**. Open **Preview** from that mode’s settings gear to verify the camera angle (bounding boxes; Watchman also shows jolt/sound).
+On the main screen, tap **Copilot**, **Spotter**, or **Watchman**. Activating Spotter/Watchman starts monitoring and fills History + Logs immediately. Tap the active mode again to turn **OFF**. Open **Preview** from that mode’s settings gear (mode must already be active) to verify the camera angle (green/red bounding boxes + confidence; Watchman also shows jolt/sound). Recording stays off until you enable **Record video** in Recording settings.
 
 ## Daily operation
 
 ### While a mode is active
 
 - CaptureService runs in the background with an ongoing notification.
+- The camera opens only for each detection still (duty-cycle), unless Preview or recording is on.
 - Detection frames are kept in **History frames** (open from Copilot / Spotter / Watchman settings).
 - Jolts and sharp sounds can raise alerts in Watchman/Spotter.
 

@@ -50,7 +50,8 @@ Roadmap priorities should be confirmed with the product owner; the list above re
 ### Battery and connectivity
 
 - Continuous camera and background operation **consume battery**. Long sessions should use power adapter when possible.
-- Shorter capture intervals increase battery and mobile data use.
+- By default the camera is **duty-cycled** (open only to take each frame, then closed). Continuous camera applies while Preview is open or Recording is enabled.
+- Shorter capture intervals / higher FPS increase battery and mobile data use.
 - Uploads require **network reachability** to the configured server; offline periods mean gaps in server-side data.
 
 ### Operational

@@ -14,8 +14,9 @@ enum class ImageUploadPolicy(val displayName: String) {
         val all = entries.toList()
 
         fun fromStoredValue(value: String?): ImageUploadPolicy = when (value?.lowercase()) {
+            "auto" -> AUTO
             "on_demand" -> ON_DEMAND
-            else -> AUTO
+            else -> ON_DEMAND
         }
     }
 }

@@ -1,5 +1,5 @@
 # Suggestion: Gate continuous recording
 
-Recording now starts whenever mode ≠ OFF using Recording section settings. Consider adding an explicit Recording on/off switch if continuous video storage becomes too large on device.
+**Status:** implemented.
 
-**Effort:** small (one preference + CaptureService check).
+Recording is controlled by `recording_enabled` (default **off**) in the Recording section. Continuous video only runs when that switch is on and mode ≠ OFF; otherwise detection uses duty-cycled still captures.

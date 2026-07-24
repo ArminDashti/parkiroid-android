@@ -17,22 +17,25 @@ class DetectionOverlayView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : View(context, attrs, defStyleAttr) {
 
-    private val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val carBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 4f
         color = Color.GREEN
     }
-    private val watchedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val personBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 6f
-        color = Color.YELLOW
+        strokeWidth = 4f
+        color = Color.RED
+    }
+    private val carTextBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(180, 0, 128, 0)
+    }
+    private val personTextBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(180, 160, 0, 0)
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 36f
-    }
-    private val textBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(180, 0, 128, 0)
     }
 
     private var detections: List<VehicleDetection> = emptyList()
@@ -60,12 +63,22 @@ class DetectionOverlayView @JvmOverloads constructor(
         invalidate()
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w > 0 && h > 0 && detections.isNotEmpty()) {
+            invalidate()
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (detections.isEmpty() || imageWidth <= 0 || imageHeight <= 0) return
 
         for (detection in detections) {
             val mapped = mapRectToView(detection.bounds, width, height)
+            val isPerson = detection.label.equals("person", ignoreCase = true)
+            val boxPaint = if (isPerson) personBoxPaint else carBoxPaint
+            val textBgPaint = if (isPerson) personTextBackgroundPaint else carTextBackgroundPaint
             canvas.drawRect(mapped, boxPaint)
 
             val label = "${detection.label} ${"%.0f".format(detection.confidence * 100)}%"
@@ -78,7 +91,7 @@ class DetectionOverlayView @JvmOverloads constructor(
                 mapped.left + textWidth + 12f,
                 textTop + textHeight + 8f,
             )
-            canvas.drawRect(textBackground, textBackgroundPaint)
+            canvas.drawRect(textBackground, textBgPaint)
             canvas.drawText(label, mapped.left + 6f, textTop + textHeight, textPaint)
         }
     }

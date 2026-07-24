@@ -13,3 +13,11 @@
 | GET | /api/v1/actions/pending | Pending capture/actions for device | Bearer |
 
 **Telemetry payload** (POST /api/v1/telemetry): `device_id`, `recorded_at`, `gps_location`, `gps_signal_quality`, `speed_kmh`, `network_signal_strength_dbm`, `network_type`, `cabin_noise_rms`, `battery_temperature_celsius`, `battery_percentage`, `rear_camera_frame_base64`, `front_camera_frame_base64`, `ambient_light_lux`, `server_latency_ms`, `device_ip_address`, `cpu_usage_percent`, `ram_usage_percent`
+
+## Local CLI scripts
+
+| Command | What it does |
+|---------|--------------|
+| `.\scripts\export-apk.ps1` / `./scripts/export-apk.sh` | Build APK and copy to `exports/` |
+| `.\install-on-phone-directly.ps1` / `./scripts/install-apk.sh` | Rebuild + install APK on a USB-debugging device via ADB (`-SkipBuild` to reuse existing APK; `-Launch`/`--launch`) |
+

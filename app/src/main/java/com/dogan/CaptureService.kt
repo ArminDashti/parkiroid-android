@@ -15,10 +15,9 @@ import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -37,11 +36,13 @@ class CaptureService : Service(), LifecycleOwner {
         const val ACTION_START = "start"
         const val ACTION_STOP = "stop"
         const val ACTION_SWITCH_CAMERA = "switch_camera"
+        const val ACTION_MODE_ACTIVATED = "mode_activated"
         const val EXTRA_CAMERA_FACING = "camera_facing"
 
         private const val CHANNEL = "dogan_capture_channel"
         private const val MOTION_CHANNEL = "dogan_motion_channel"
         private const val NOTIF_ID = 81
+        private const val PREVIEW_ANALYSIS_FPS_FLOOR = 2f
     }
 
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -90,6 +91,7 @@ class CaptureService : Service(), LifecycleOwner {
     @Volatile private var lastMotionTriggeredCaptureAt = 0L
     @Volatile private var lastScreenWakeAt = 0L
     @Volatile private var lastAnalysisAt = 0L
+    @Volatile private var continuousCameraActive = false
     private val latestDetections = AtomicReference<List<VehicleDetection>>(emptyList())
 
     private lateinit var sensorManager: SensorManager
@@ -121,7 +123,20 @@ class CaptureService : Service(), LifecycleOwner {
                 val facing = CameraFacing.fromStoredValue(intent.getStringExtra(EXTRA_CAMERA_FACING))
                 switchCamera(facing)
             }
-            else -> startCapture()
+            ACTION_MODE_ACTIVATED -> {
+                if (running) {
+                    refreshForModeActivation()
+                } else {
+                    startCapture()
+                }
+            }
+            else -> {
+                if (running) {
+                    refreshForModeActivation()
+                } else {
+                    startCapture()
+                }
+            }
         }
         return START_STICKY
     }
@@ -137,13 +152,14 @@ class CaptureService : Service(), LifecycleOwner {
         cachedSettings = runBlocking { settingsStore.settingsFlow.first() }
         val settings = cachedSettings ?: return
         SessionCredentials.updateFrom(settings)
+        AppLogger.activeModeSection = LogSection.forOperatingMode(settings.operatingMode)
 
         downloadAssets(settings)
-        bindCamera(settings)
         vehicleMotionDetector.register(sensorManager)
         locationTracker.start(settings.telemetryIntervalMs)
         ambientLightSensor.start()
         audioCapture.start()
+        scheduleAnalysisLoop()
         scheduleTelemetryLoop()
         scheduleKeepAliveLoop()
         scheduleUploadLoop()
@@ -154,18 +170,50 @@ class CaptureService : Service(), LifecycleOwner {
             liveKitStreamer.start(settings.serverBaseUrl, settings.streamMode)
         }
 
-        vehicleMotionDetector.joltSensitivity = settings.joltSensitivity
-        audioCapture.soundSensitivity = settings.soundSensitivity
-
-        AppLogger.info("Capture", "Monitoring started — ${settings.operatingMode.displayName}")
+        applySensitivity(settings)
+        logModeActivated(settings.operatingMode)
 
         DetectionTapBridge.handler = { label, bounds, w, h ->
             spotterEngine.addWatchedVehicle(label, bounds, w, h)
         }
     }
 
+    /** Refresh settings and force the next analysis frame after a mode switch. */
+    private fun refreshForModeActivation() {
+        cachedSettings = runBlocking { settingsStore.settingsFlow.first() }
+        val settings = cachedSettings ?: return
+        SessionCredentials.updateFrom(settings)
+        AppLogger.activeModeSection = LogSection.forOperatingMode(settings.operatingMode)
+        applySensitivity(settings)
+        lastAnalysisAt = 0L
+        logModeActivated(settings.operatingMode)
+        startForeground(NOTIF_ID, buildNotification())
+    }
+
+    private fun applySensitivity(settings: AppSettings) {
+        vehicleMotionDetector.joltSensitivity = settings.joltSensitivity
+        vehicleMotionDetector.customJoltScale = settings.customJoltScale
+        audioCapture.soundSensitivity = settings.soundSensitivity
+        audioCapture.customSoundThreshold = settings.customSoundThreshold
+    }
+
+    private fun logModeActivated(mode: OperatingMode) {
+        when (mode) {
+            OperatingMode.SPOTTER ->
+                AppLogger.info(LogSection.SPOTTER, "Spotter", "Spotter activated — history and detection started")
+            OperatingMode.WATCHER ->
+                AppLogger.info(LogSection.WATCHMAN, "Watchman", "Watchman activated — history and detection started")
+            OperatingMode.COPILOT ->
+                AppLogger.info("Capture", "Copilot activated — monitoring started")
+            OperatingMode.OFF ->
+                AppLogger.info("Capture", "Monitoring stopped")
+        }
+    }
+
     private fun stopCapture() {
         running = false
+        AppLogger.activeModeSection = null
+        continuousCameraActive = false
         DoganCamera.clear()
         vehicleMotionDetector.unregister(sensorManager)
         locationTracker.stop()
@@ -195,9 +243,59 @@ class CaptureService : Service(), LifecycleOwner {
         }
     }
 
-    private fun bindCamera(settings: AppSettings) {
-        // Drop any MainActivity preview-only bind so ImageAnalysis is always attached.
-        DoganCamera.clear()
+    /**
+     * Opens the camera only when a frame is needed (duty-cycle), unless Preview or recording
+     * requires a continuous bind.
+     */
+    private fun scheduleAnalysisLoop() {
+        analysisExecutor.execute {
+            while (running) {
+                try {
+                    val settings = cachedSettings ?: runBlocking { settingsStore.settingsFlow.first() }
+                    cachedSettings = settings
+                    if (settings.operatingMode == OperatingMode.OFF) {
+                        releaseContinuousCamera()
+                        DetectionOverlayBridge.clear()
+                        Thread.sleep(1_000L)
+                        continue
+                    }
+
+                    applySensitivity(settings)
+                    SensorHudBridge.publish(vehicleMotionDetector.lastMagnitudeMps2, audioCapture.currentRms)
+
+                    if (needsContinuousCamera(settings)) {
+                        ensureContinuousCamera(settings)
+                        Thread.sleep(200L)
+                        continue
+                    }
+
+                    releaseContinuousCamera()
+                    val now = System.currentTimeMillis()
+                    val fps = settings.fpsForMode(settings.operatingMode).coerceAtLeast(0.001f)
+                    val minInterval = (1000f / fps).toLong().coerceAtLeast(1L)
+                    val waitMs = (minInterval - (now - lastAnalysisAt)).coerceAtLeast(0L)
+                    if (waitMs > 0L) {
+                        Thread.sleep(waitMs.coerceAtMost(1_000L))
+                        continue
+                    }
+                    captureAndAnalyzeOnce(settings)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                } catch (e: Exception) {
+                    AppLogger.error("Detection", "Analysis loop error: ${e.message}")
+                    Thread.sleep(2_000L)
+                }
+            }
+        }
+    }
+
+    private fun needsContinuousCamera(settings: AppSettings): Boolean {
+        return DetectionOverlayBridge.listener != null || settings.recordingEnabled
+    }
+
+    private fun ensureContinuousCamera(settings: AppSettings) {
+        if (continuousCameraActive && DoganCamera.isBound) return
         DoganCamera.setAnalysisListener { proxy ->
             processAnalysisFrame(proxy, settings)
         }
@@ -209,14 +307,54 @@ class CaptureService : Service(), LifecycleOwner {
             context = this,
             lifecycleOwner = this,
             cameraFacing = previewFacing,
-            jpegQuality = settings.sendingImageQuality.jpegQuality,
+            jpegQuality = settings.frameQualityForMode(settings.operatingMode).jpegQuality,
             analysisExecutor = analysisExecutor,
             realtimeFps = settings.fpsForMode(settings.operatingMode).toInt().coerceAtLeast(1),
         )
+        continuousCameraActive = true
         AppLogger.info(
             "Detection",
-            "Analysis camera bound (mode=${settings.operatingMode.displayName})",
+            "Continuous camera bound (preview/recording; mode=${settings.operatingMode.displayName})",
         )
+    }
+
+    private fun releaseContinuousCamera() {
+        if (!continuousCameraActive && !DoganCamera.isBound) return
+        DoganCamera.clear()
+        continuousCameraActive = false
+    }
+
+    private fun captureAndAnalyzeOnce(settings: AppSettings) {
+        val facing = when (settings.activeCamera) {
+            CameraFacing.FRONT -> CameraFacing.FRONT
+            else -> CameraFacing.REAR
+        }
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var bitmap: Bitmap? = null
+        DoganCamera.preferContinuousBind = false
+        DoganCamera.captureBitmap(
+            context = this,
+            lifecycleOwner = this,
+            facing = facing,
+            jpegQuality = settings.frameQualityForMode(settings.operatingMode).jpegQuality,
+            onComplete = { captured ->
+                bitmap = captured
+                latch.countDown()
+            },
+            // Must not be analysisExecutor — this method awaits on that thread.
+            executor = ContextCompat.getMainExecutor(this),
+        )
+        if (!latch.await(15, java.util.concurrent.TimeUnit.SECONDS)) {
+            AppLogger.error("Detection", "Timed out waiting for duty-cycle capture")
+            return
+        }
+        val frame = bitmap
+        if (frame == null) {
+            AppLogger.error("Detection", "Duty-cycle capture returned no bitmap")
+            return
+        }
+        lastAnalysisAt = System.currentTimeMillis()
+        processBitmapFrame(frame, settings, recycleBitmap = true)
     }
 
     private fun processAnalysisFrame(proxy: ImageProxy, settings: AppSettings) {
@@ -227,10 +365,13 @@ class CaptureService : Service(), LifecycleOwner {
                 DetectionOverlayBridge.clear()
                 return
             }
-            vehicleMotionDetector.joltSensitivity = currentSettings.joltSensitivity
-            audioCapture.soundSensitivity = currentSettings.soundSensitivity
+            applySensitivity(currentSettings)
             SensorHudBridge.publish(vehicleMotionDetector.lastMagnitudeMps2, audioCapture.currentRms)
-            val fps = currentSettings.fpsForMode(currentSettings.operatingMode).coerceAtLeast(0.001f)
+            var fps = currentSettings.fpsForMode(currentSettings.operatingMode).coerceAtLeast(0.001f)
+            // Preview testing: floor to ~2 FPS while overlay listener is attached.
+            if (DetectionOverlayBridge.listener != null) {
+                fps = maxOf(fps, PREVIEW_ANALYSIS_FPS_FLOOR)
+            }
             val minInterval = (1000f / fps).toLong().coerceAtLeast(1L)
             if (now - lastAnalysisAt < minInterval) return
             lastAnalysisAt = now
@@ -240,34 +381,37 @@ class CaptureService : Service(), LifecycleOwner {
                 AppLogger.error("Detection", "Failed to convert camera frame to bitmap")
                 return
             }
-            val result = ncnnObjectDetector.detect(
-                bitmap,
-                currentSettings.confidenceForMode(currentSettings.operatingMode),
-                currentSettings.aiModel,
-            )
-            val frameWidth = bitmap.width
-            val frameHeight = bitmap.height
-            latestDetections.set(result.detections)
-            // Use post-rotation bitmap size so overlay coords match NCNN input.
-            DetectionOverlayBridge.publish(result.detections, frameWidth, frameHeight)
-            modeController.processFrame(
-                result.detections,
-                frameWidth,
-                frameHeight,
-                currentSettings,
-            )
-            frameHistoryStore.append(
-                mode = currentSettings.operatingMode,
-                bitmap = bitmap,
-                detections = result.detections,
-                maxFrames = currentSettings.historyRetentionForMode(currentSettings.operatingMode),
-            )
-            bitmap.recycle()
-            maybeRecordMedia(currentSettings)
-            NcnnObjectDetector.logResult(result)
+            processBitmapFrame(bitmap, currentSettings, recycleBitmap = true)
         } finally {
             proxy.close()
         }
+    }
+
+    private fun processBitmapFrame(bitmap: Bitmap, settings: AppSettings, recycleBitmap: Boolean) {
+        val result = ncnnObjectDetector.detect(
+            bitmap,
+            settings.confidenceForMode(settings.operatingMode),
+            settings.aiModel,
+        )
+        val frameWidth = bitmap.width
+        val frameHeight = bitmap.height
+        latestDetections.set(result.detections)
+        DetectionOverlayBridge.publish(result.detections, frameWidth, frameHeight)
+        modeController.processFrame(
+            result.detections,
+            frameWidth,
+            frameHeight,
+            settings,
+        )
+        frameHistoryStore.append(
+            mode = settings.operatingMode,
+            bitmap = bitmap,
+            detections = result.detections,
+            maxFrames = settings.historyRetentionForMode(settings.operatingMode),
+        )
+        if (recycleBitmap) bitmap.recycle()
+        maybeRecordMedia(settings)
+        NcnnObjectDetector.logResult(result)
     }
 
     /**
@@ -361,17 +505,21 @@ class CaptureService : Service(), LifecycleOwner {
         io.execute {
             runBlocking { settingsStore.updateActiveCamera(facing) }
             cachedSettings = settings.copy(activeCamera = facing)
-            DoganCamera.switchCamera(
-                context = this,
-                lifecycleOwner = this,
-                cameraFacing = when (facing) {
-                    CameraFacing.BOTH -> CameraFacing.REAR
-                    else -> facing
-                },
-                jpegQuality = settings.sendingImageQuality.jpegQuality,
-                analysisExecutor = analysisExecutor,
-                realtimeFps = settings.fpsForMode(settings.operatingMode).toInt().coerceAtLeast(1),
-            )
+            if (needsContinuousCamera(cachedSettings ?: settings)) {
+                continuousCameraActive = false
+                DoganCamera.switchCamera(
+                    context = this,
+                    lifecycleOwner = this,
+                    cameraFacing = when (facing) {
+                        CameraFacing.BOTH -> CameraFacing.REAR
+                        else -> facing
+                    },
+                    jpegQuality = settings.frameQualityForMode(settings.operatingMode).jpegQuality,
+                    analysisExecutor = analysisExecutor,
+                    realtimeFps = settings.fpsForMode(settings.operatingMode).toInt().coerceAtLeast(1),
+                )
+                continuousCameraActive = true
+            }
             AppLogger.info("Camera", "Switched to ${facing.name.lowercase()} camera")
         }
     }
@@ -383,6 +531,8 @@ class CaptureService : Service(), LifecycleOwner {
                     val settings = runBlocking { settingsStore.settingsFlow.first() }
                     cachedSettings = settings
                     SessionCredentials.updateFrom(settings)
+                    AppLogger.activeModeSection = LogSection.forOperatingMode(settings.operatingMode)
+                    applySensitivity(settings)
 
                     if (ServerConnectionManager.isConnected() && isValidBaseUrl(settings.serverBaseUrl)) {
                         collectAndEnqueueTelemetry(settings)
@@ -460,7 +610,7 @@ class CaptureService : Service(), LifecycleOwner {
     }
 
     private fun maybeRecordMedia(settings: AppSettings) {
-        if (settings.operatingMode == OperatingMode.OFF) {
+        if (settings.operatingMode == OperatingMode.OFF || !settings.recordingEnabled) {
             if (detectionVideoRecorder.isRecording()) detectionVideoRecorder.stop()
             return
         }

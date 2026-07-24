@@ -10,14 +10,28 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
+/** One displayable log line with an optional section for filtering. */
+data class LogEntry(
+    val section: LogSection,
+    val displayLine: String,
+)
+
 /** Persistent ring buffer of recent app events shown on the Logs screen. */
 object AppLogger {
     private const val MAX_LINES = 500
     private val formatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
     private var logFile: File? = null
 
-    private val _lines = MutableStateFlow<List<String>>(emptyList())
-    val lines: StateFlow<List<String>> = _lines.asStateFlow()
+    /** When set, Detection/Capture/Camera tags inherit this section. */
+    @Volatile
+    var activeModeSection: LogSection? = null
+
+    private val _entries = MutableStateFlow<List<LogEntry>>(emptyList())
+    val entries: StateFlow<List<LogEntry>> = _entries.asStateFlow()
+
+    private val _displayLines = MutableStateFlow<List<String>>(emptyList())
+    /** All display lines (main Logs screen). */
+    val lines: StateFlow<List<String>> = _displayLines.asStateFlow()
 
     fun init(context: Context) {
         val dir = File(context.filesDir, "logs").also { it.mkdirs() }
@@ -26,21 +40,29 @@ object AppLogger {
         purgeOlderThan(context, SettingsStore.DEFAULT_LOG_RETENTION_DAYS)
     }
 
-    fun info(tag: String, message: String) = append("I", tag, message)
+    fun info(tag: String, message: String) = append(null, "I", tag, message)
 
-    fun warn(tag: String, message: String) = append("W", tag, message)
+    fun info(section: LogSection, tag: String, message: String) = append(section, "I", tag, message)
 
-    fun error(tag: String, message: String) = append("E", tag, message)
+    fun warn(tag: String, message: String) = append(null, "W", tag, message)
+
+    fun warn(section: LogSection, tag: String, message: String) = append(section, "W", tag, message)
+
+    fun error(tag: String, message: String) = append(null, "E", tag, message)
+
+    fun error(section: LogSection, tag: String, message: String) = append(section, "E", tag, message)
 
     fun clear() {
-        _lines.value = emptyList()
+        _entries.value = emptyList()
+        _displayLines.value = emptyList()
         logFile?.writeText("")
     }
 
     fun flushDisk(context: Context) {
         val dir = File(context.filesDir, "logs")
         dir.listFiles()?.forEach { it.delete() }
-        _lines.value = emptyList()
+        _entries.value = emptyList()
+        _displayLines.value = emptyList()
         logFile = File(dir, "dogan.log").also { dir.mkdirs() }
     }
 
@@ -54,21 +76,65 @@ object AppLogger {
         loadFromDisk()
     }
 
+    fun linesForSection(section: LogSection?): List<String> {
+        val all = _entries.value
+        if (section == null) return all.map { it.displayLine }
+        return all.filter { it.section == section }.map { it.displayLine }
+    }
+
     private fun loadFromDisk() {
         val file = logFile ?: return
         if (!file.exists()) return
-        val loaded = file.readLines().takeLast(MAX_LINES)
-        _lines.value = loaded
+        val loaded = file.readLines().takeLast(MAX_LINES).mapNotNull { parseStoredLine(it) }
+        _entries.value = loaded
+        _displayLines.value = loaded.map { it.displayLine }
     }
 
-    private fun append(level: String, tag: String, message: String) {
+    private fun parseStoredLine(raw: String): LogEntry? {
+        if (raw.isBlank()) return null
+        // New format: HH:mm:ss.SSS L/[section]/tag: message
+        val sectionMatch = Regex("""^(\d{2}:\d{2}:\d{2}\.\d{3}) ([IWE])/\[(\w+)]/([^:]+): (.*)$""")
+            .matchEntire(raw)
+        if (sectionMatch != null) {
+            val (ts, level, section, tag, message) = sectionMatch.destructured
+            val display = "$ts $level/$tag: $message"
+            return LogEntry(LogSection.fromStoredValue(section), display)
+        }
+        // Legacy format: HH:mm:ss.SSS L/tag: message
+        val legacyMatch = Regex("""^(\d{2}:\d{2}:\d{2}\.\d{3}) ([IWE])/([^:]+): (.*)$""")
+            .matchEntire(raw)
+        if (legacyMatch != null) {
+            val (ts, level, tag, message) = legacyMatch.destructured
+            val display = "$ts $level/$tag: $message"
+            return LogEntry(sectionForTag(tag, null), display)
+        }
+        return LogEntry(LogSection.GENERAL, raw)
+    }
+
+    private fun append(explicit: LogSection?, level: String, tag: String, message: String) {
+        val section = sectionForTag(tag, explicit)
         val timestamp = LocalTime.now().format(formatter)
-        val line = "$timestamp $level/$tag: $message"
-        val updated = (_lines.value + line).takeLast(MAX_LINES)
-        _lines.value = updated
+        val display = "$timestamp $level/$tag: $message"
+        val stored = "$timestamp $level/[${section.storedValue}]/$tag: $message"
+        val entry = LogEntry(section, display)
+        val updated = (_entries.value + entry).takeLast(MAX_LINES)
+        _entries.value = updated
+        _displayLines.value = updated.map { it.displayLine }
         try {
-            logFile?.appendText("$line\n")
+            logFile?.appendText("$stored\n")
         } catch (_: Exception) {
+        }
+    }
+
+    private fun sectionForTag(tag: String, explicit: LogSection?): LogSection {
+        if (explicit != null) return explicit
+        return when (tag) {
+            "Spotter" -> LogSection.SPOTTER
+            "Audio", "Watcher", "Watchman" -> LogSection.WATCHMAN
+            "VideoRecorder", "MediaArchive", "Storage" -> LogSection.RECORDING
+            "Server", "LiveKit", "SSL", "SettingsSync", "Settings" -> LogSection.CONNECTIVITY
+            "Detection", "Capture", "Camera" -> activeModeSection ?: LogSection.GENERAL
+            else -> LogSection.GENERAL
         }
     }
 }
