@@ -52,8 +52,10 @@ class CaptureService : Service(), LifecycleOwner {
     private val deviceId by lazy { DeviceIdentity.resolveDeviceId(this) }
     private val apiClient by lazy { DoganApiClient(deviceId = deviceId) }
     private val io = Executors.newSingleThreadExecutor()
+    private val uploadExecutor = Executors.newSingleThreadExecutor()
     private val keepAliveExecutor = Executors.newSingleThreadExecutor()
     private val analysisExecutor = Executors.newSingleThreadExecutor()
+    private val captureCallbackExecutor = Executors.newSingleThreadExecutor()
 
     private val telemetryDatabase by lazy { TelemetryDatabase(this) }
     private val frameHistoryStore by lazy { FrameHistoryStore(this) }
@@ -188,6 +190,11 @@ class CaptureService : Service(), LifecycleOwner {
         lastAnalysisAt = 0L
         logModeActivated(settings.operatingMode)
         startForeground(NOTIF_ID, buildNotification())
+        // Mode may already be running before Connect; start LiveKit once the API is up.
+        if (ServerConnectionManager.isConnected() && isValidBaseUrl(settings.serverBaseUrl)) {
+            ServerSettingsSync.start(this)
+            liveKitStreamer.start(settings.serverBaseUrl, settings.streamMode)
+        }
     }
 
     private fun applySensitivity(settings: AppSettings) {
@@ -553,7 +560,8 @@ class CaptureService : Service(), LifecycleOwner {
 
     private fun collectAndEnqueueTelemetry(settings: AppSettings) {
         val includeFrames = shouldIncludeFrames(settings)
-        val forceCapture = hasPendingCaptureAction(settings)
+        val pendingActionIds = pendingCaptureActionIds(settings)
+        val forceCapture = pendingActionIds.isNotEmpty()
         val latch = java.util.concurrent.CountDownLatch(
             when (settings.activeCamera) {
                 CameraFacing.BOTH -> 2
@@ -568,23 +576,23 @@ class CaptureService : Service(), LifecycleOwner {
                 DoganCamera.captureFromFacing(this, this, CameraFacing.FRONT, settings.sendingImageQuality.jpegQuality, { file ->
                     frontFile = file
                     latch.countDown()
-                }, io)
+                }, captureCallbackExecutor)
             }
             CameraFacing.REAR -> {
                 DoganCamera.captureFromFacing(this, this, CameraFacing.REAR, settings.sendingImageQuality.jpegQuality, { file ->
                     rearFile = file
                     latch.countDown()
-                }, io)
+                }, captureCallbackExecutor)
             }
             CameraFacing.BOTH -> {
                 DoganCamera.captureFromFacing(this, this, CameraFacing.REAR, settings.sendingImageQuality.jpegQuality, { file ->
                     rearFile = file
                     latch.countDown()
-                }, io)
+                }, captureCallbackExecutor)
                 DoganCamera.captureFromFacing(this, this, CameraFacing.FRONT, settings.sendingImageQuality.jpegQuality, { file ->
                     frontFile = file
                     latch.countDown()
-                }, io)
+                }, captureCallbackExecutor)
             }
         }
 
@@ -596,6 +604,9 @@ class CaptureService : Service(), LifecycleOwner {
         val attachFrames = includeFrames || forceCapture
         val payload = telemetryCollector.collectSnapshot(rearFile, frontFile, latency, attachFrames)
         telemetryDatabase.enqueue(payload)
+        if (forceCapture && telemetryHasAttachedFrames(payload)) {
+            acknowledgePendingActions(settings.serverBaseUrl, pendingActionIds)
+        }
         rearFile?.delete()
         frontFile?.delete()
     }
@@ -604,9 +615,30 @@ class CaptureService : Service(), LifecycleOwner {
         return settings.imageUploadPolicyForMode(settings.operatingMode) == ImageUploadPolicy.AUTO
     }
 
-    private fun hasPendingCaptureAction(settings: AppSettings): Boolean {
-        val actions = apiClient.fetchPendingActions(settings.serverBaseUrl) ?: return false
-        return actions.length() > 0
+    private fun pendingCaptureActionIds(settings: AppSettings): List<Long> {
+        val actions = apiClient.fetchPendingActions(settings.serverBaseUrl) ?: return emptyList()
+        val actionIds = ArrayList<Long>(actions.length())
+        for (index in 0 until actions.length()) {
+            val action = actions.optJSONObject(index) ?: continue
+            val actionId = action.optLong("id", 0L)
+            if (actionId > 0L) {
+                actionIds.add(actionId)
+            }
+        }
+        return actionIds
+    }
+
+    private fun telemetryHasAttachedFrames(payload: JSONObject): Boolean {
+        return payload.optString("rear_camera_frame_base64").isNotBlank() ||
+            payload.optString("front_camera_frame_base64").isNotBlank()
+    }
+
+    private fun acknowledgePendingActions(baseUrl: String, actionIds: List<Long>) {
+        for (actionId in actionIds) {
+            if (!apiClient.acknowledgeAction(baseUrl, actionId)) {
+                AppLogger.warn("Actions", "Failed to acknowledge action $actionId")
+            }
+        }
     }
 
     private fun maybeRecordMedia(settings: AppSettings) {
@@ -634,7 +666,7 @@ class CaptureService : Service(), LifecycleOwner {
     }
 
     private fun scheduleUploadLoop() {
-        io.execute {
+        uploadExecutor.execute {
             while (running) {
                 try {
                     val settings = cachedSettings ?: runBlocking { settingsStore.settingsFlow.first() }
@@ -656,7 +688,7 @@ class CaptureService : Service(), LifecycleOwner {
     }
 
     private fun scheduleDiagnosticUploadLoop() {
-        io.execute {
+        uploadExecutor.execute {
             while (running) {
                 try {
                     val settings = cachedSettings ?: continue

@@ -14,6 +14,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** LiveKit publisher for video-only, audio-only, and video+audio modes. */
 class LiveKitStreamer(
@@ -30,7 +31,9 @@ class LiveKitStreamer(
     fun start(baseUrl: String, streamMode: StreamMode) {
         scope.launch {
             stopInternal()
-            val session = apiClient.createWebRtcSession(baseUrl) ?: run {
+            val session = withContext(Dispatchers.IO) {
+                apiClient.createWebRtcSession(baseUrl)
+            } ?: run {
                 AppLogger.error("LiveKit", "Failed to create session")
                 LiveKitStatusCache.setStreaming(false)
                 LiveKitStatusCache.setError("LiveKit session could not be created")

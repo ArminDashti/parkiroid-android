@@ -168,7 +168,22 @@ class DoganApiClient(
 
     fun fetchPendingActions(baseUrl: String): JSONArray? {
         if (!ensureAuthenticated(baseUrl)) return null
-        return getAuthenticatedArray(baseUrl, "/api/v1/actions/pending?device_id=$deviceId")
+        // Server expects device-id and returns {"actions":[...]}.
+        return getAuthenticatedJson(baseUrl, "/api/v1/actions/pending?device-id=$deviceId")
+    }
+
+    /** Mark a pending phone action as finished (`PUT /api/v1/actions/:id/ack`). */
+    fun acknowledgeAction(baseUrl: String, actionId: Long, status: String = "done"): Boolean {
+        if (actionId <= 0L) return false
+        if (!ensureAuthenticated(baseUrl)) return false
+        val payload = JSONObject().put("status", status).toString()
+        val path = "/api/v1/actions/$actionId/ack"
+        val first = executePut(baseUrl, path, payload, bearerToken)
+        if (first == PostResult.Success) return true
+        if (first != PostResult.Unauthorized) return false
+        clearToken()
+        if (!authenticate(baseUrl)) return false
+        return executePut(baseUrl, path, payload, bearerToken) == PostResult.Success
     }
 
     fun submitDiagnosticAudio(
