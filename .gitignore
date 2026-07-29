@@ -75,8 +75,8 @@ ai-models/yolo26n_ncnn_model/model.ncnn.bin
 ai-models/yolo26s_ncnn_model/model.ncnn.bin
 app/src/main/cpp/ncnn-20240820-android-vulkan/arm64-v8a/lib/libncnn.a
 app/src/main/cpp/ncnn-20240820-android-vulkan/armeabi-v7a/lib/libncnn.a
-app/src/main/cpp/ncnn-20240820-android-vulkan/x86/lib/libncnn.a
 app/src/main/cpp/ncnn-20240820-android-vulkan/x86_64/lib/libncnn.a
+app/src/main/cpp/ncnn-20240820-android-vulkan/x86/lib/libncnn.a
 exports/parkiroid-debug-v1.0-20260616-091345.apk
 exports/parkiroid-debug-v1.0-20260617-161428.apk
 exports/parkiroid-debug-v1.0-20260621-125833.apk
