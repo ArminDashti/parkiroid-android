@@ -111,3 +111,23 @@ exports\dogan-debug-v2.0-20260724-211611.apk
 exports\dogan-debug-v2.0-20260724-211659.apk
 exports\dogan-debug-v2.0-20260724-214748.apk
 exports\parkiroid-debug-v1.0-20260710-172151.apk
+
+# auto-managed large files (>5MB)
+app/build/ncnn-20240820-android-vulkan.zip
+app/build/intermediates/cxx/Debug/6o416i1v/obj/arm64-v8a/libdogan_ncnn.so
+app/build/intermediates/cxx/Debug/6o416i1v/obj/armeabi-v7a/libdogan_ncnn.so
+app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
+app/build/intermediates/dex/debug/mergeExtDexDebug/classes2.dex
+app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libdogan_ncnn.so
+app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/liblkjingle_peerconnection_so.so
+app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/libdogan_ncnn.so
+app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/liblkjingle_peerconnection_so.so
+app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86/liblkjingle_peerconnection_so.so
+app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86_64/liblkjingle_peerconnection_so.so
+app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libdogan_ncnn.so
+app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/liblkjingle_peerconnection_so.so
+app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/libdogan_ncnn.so
+app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/liblkjingle_peerconnection_so.so
+app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/liblkjingle_peerconnection_so.so
+app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/liblkjingle_peerconnection_so.so
+app/build/outputs/apk/debug/app-debug.apk
