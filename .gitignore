@@ -131,3 +131,5 @@ app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/li
 app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/liblkjingle_peerconnection_so.so
 app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/liblkjingle_peerconnection_so.so
 app/build/outputs/apk/debug/app-debug.apk
+
+# === auto-managed large files (>5MB) ===
